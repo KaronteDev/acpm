@@ -23,12 +23,21 @@ export default function KnowledgePage() {
   useEffect(() => {
     projects.list().then(r => {
       setProjectList(r.projects);
-      if (r.projects.length) setSelectedProject(r.projects[0].id);
+      if (r.projects.length) {
+        // Try to load saved project from localStorage
+        const savedProjectId = typeof window !== 'undefined' ? localStorage.getItem('acpm_knowledge_selected_project') : null;
+        const projectToSelect = savedProjectId && r.projects.some(p => p.id === savedProjectId) ? savedProjectId : r.projects[0].id;
+        setSelectedProject(projectToSelect);
+      }
     });
   }, []);
 
   useEffect(() => {
     if (!selectedProject) return;
+    // Save selected project to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('acpm_knowledge_selected_project', selectedProject);
+    }
     setLoading(true);
     knowledge.list({ project_id: selectedProject, ...(filterType ? { node_type: filterType } : {}) })
       .then(r => setNodes(r.nodes))
