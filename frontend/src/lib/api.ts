@@ -329,9 +329,9 @@ export const notifications = {
   unreadCount: () => 
     apiFetch<{ unread_count: number }>('/api/notifications/unread-count'),
   markAsRead: (id: string) => 
-    apiFetch<{ notification: Notification }>(`/api/notifications/${id}/read`, { method: 'PATCH' }),
+    apiFetch<{ notification: Notification }>(`/api/notifications/${id}/read`, { method: 'PATCH', body: JSON.stringify({}) }),
   markAllAsRead: () => 
-    apiFetch<{ success: boolean }>('/api/notifications/mark-all-read', { method: 'PATCH' }),
+    apiFetch<{ success: boolean }>('/api/notifications/mark-all-read', { method: 'PATCH', body: JSON.stringify({}) }),
   delete: (id: string) => 
     apiFetch<{ success: boolean }>(`/api/notifications/${id}`, { method: 'DELETE' }),
 };

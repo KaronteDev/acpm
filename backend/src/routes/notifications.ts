@@ -46,18 +46,6 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     return reply.send({ unread_count: parseInt(result.count) });
   });
 
-  // PATCH /api/notifications/mark-all-read - Mark all notifications as read (MUST be before /:id routes)
-  fastify.patch('/mark-all-read', { preHandler: authenticate }, async (request, reply) => {
-    const { id: userId } = getUserFromRequest(request);
-
-    await query(
-      `UPDATE notifications SET is_read = TRUE, read_at = NOW() WHERE user_id = $1 AND is_read = FALSE`,
-      [userId]
-    );
-
-    return reply.send({ success: true });
-  });
-
   // PATCH /api/notifications/:id/read - Mark notification as read
   fastify.patch('/:id/read', { preHandler: authenticate }, async (request, reply) => {
     const { id: userId } = getUserFromRequest(request);
@@ -78,6 +66,18 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     );
 
     return reply.send({ notification: updated });
+  });
+
+  // PATCH /api/notifications/mark-all-read - Mark all notifications as read
+  fastify.patch('/mark-all-read', { preHandler: authenticate }, async (request, reply) => {
+    const { id: userId } = getUserFromRequest(request);
+
+    await query(
+      `UPDATE notifications SET is_read = TRUE, read_at = NOW() WHERE user_id = $1 AND is_read = FALSE`,
+      [userId]
+    );
+
+    return reply.send({ success: true });
   });
 
   // DELETE /api/notifications/:id - Delete a notification
