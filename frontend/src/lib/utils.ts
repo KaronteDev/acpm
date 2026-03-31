@@ -94,6 +94,7 @@ export const PRIORITY_COLORS: Record<TaskPriority, string> = {
 };
 
 export const ROLE_LABELS: Record<UserRole, string> = {
+  admin: '🛡️ Admin',
   architect_lead: '👑 Architect-Lead',
   deep_contributor: '🔬 Deep Contributor',
   connector: '🔗 Connector',
@@ -105,6 +106,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const ROLE_COLOR: Record<UserRole, string> = {
+  admin: '#E74C3C',
   architect_lead: '#EF9F27',
   deep_contributor: '#7F77DD',
   connector: '#5DCAA5',

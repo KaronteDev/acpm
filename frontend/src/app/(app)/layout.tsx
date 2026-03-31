@@ -14,6 +14,8 @@ const NAV = [
   { href: '/wellness', icon: '◐', label: 'Bienestar', badge: 'alerts' },
   { href: '/sprint', icon: '⧖', label: 'Sprint' },
   { href: '/knowledge', icon: '◉', label: 'Conocimiento' },
+  null,
+  { href: '/admin/users', icon: '🛡', label: 'Usuarios', adminOnly: true },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -63,6 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="px-3 space-y-0.5">
             {NAV.map((item, i) => {
               if (!item) return <div key={i} className="my-2 border-t border-border/50" />;
+              if ('adminOnly' in item && item.adminOnly && user.role !== 'admin') return null;
               const active = pathname.startsWith(item.href);
               return (
                 <Link

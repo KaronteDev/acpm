@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { query, queryOne } from '../db/pool.js';
-import { authenticate, getUserFromRequest } from '../middleware/auth.js';
+import { authenticate, getUserFromRequest, requireAdmin } from '../middleware/auth.js';
 
 const SprintSchema = z.object({
   project_id: z.string().uuid(),
@@ -232,6 +232,69 @@ export async function usersRoutes(fastify: FastifyInstance) {
     );
     if (!user) return reply.status(404).send({ error: 'Usuario no encontrado' });
     return reply.send({ user });
+  });
+
+  // POST /api/users — Admin: create user
+  fastify.post('/', { preHandler: requireAdmin }, async (request, reply) => {
+    const body = z.object({
+      email: z.string().email(),
+      full_name: z.string().min(2),
+      password: z.string().min(6),
+      role: z.enum(['admin', 'architect_lead', 'deep_contributor', 'connector', 'flow_guardian', 'product_visionary', 'devops_integrator', 'quality_auditor', 'stakeholder']).default('deep_contributor'),
+    }).parse(request.body);
+
+    const existing = await queryOne('SELECT id FROM users WHERE email = $1', [body.email]);
+    if (existing) return reply.status(409).send({ error: 'El email ya está registrado' });
+
+    const bcrypt = await import('bcryptjs');
+    const hash = await bcrypt.hash(body.password, 10);
+
+    const [user] = await query(
+      `INSERT INTO users (email, full_name, password_hash, role, cognitive_profile)
+       VALUES ($1, $2, $3, $4, '{}')
+       RETURNING id, email, full_name, role, timezone, is_active, created_at`,
+      [body.email, body.full_name, hash, body.role]
+    );
+    return reply.status(201).send({ user });
+  });
+
+  // PATCH /api/users/:id — Admin: update user
+  fastify.patch('/:id', { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const body = request.body as Partial<{ full_name: string; email: string; role: string; is_active: boolean }>;
+
+    const allowed = ['full_name', 'email', 'role', 'is_active'];
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+
+    for (const key of allowed) {
+      if (body[key as keyof typeof body] !== undefined) {
+        updates.push(`${key} = $${idx++}`);
+        values.push(body[key as keyof typeof body]);
+      }
+    }
+
+    if (!updates.length) return reply.status(400).send({ error: 'No hay campos para actualizar' });
+    values.push(id);
+
+    const [user] = await query(
+      `UPDATE users SET ${updates.join(',')} WHERE id = $${idx}
+       RETURNING id, email, full_name, role, timezone, is_active, created_at`,
+      values
+    );
+    if (!user) return reply.status(404).send({ error: 'Usuario no encontrado' });
+    return reply.send({ user });
+  });
+
+  // DELETE /api/users/:id — Admin: deactivate user
+  fastify.delete('/:id', { preHandler: requireAdmin }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const caller = getUserFromRequest(request);
+    if (caller.id === id) return reply.status(400).send({ error: 'No puedes desactivarte a ti mismo' });
+
+    await query('UPDATE users SET is_active = FALSE WHERE id = $1', [id]);
+    return reply.send({ success: true });
   });
 }
 

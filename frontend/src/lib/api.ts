@@ -107,6 +107,11 @@ export const dashboard = {
 export const users = {
   list: () => apiFetch<{ users: User[] }>('/api/users'),
   get: (id: string) => apiFetch<{ user: User }>(`/api/users/${id}`),
+  create: (data: { email: string; full_name: string; password: string; role?: UserRole }) =>
+    apiFetch<{ user: User }>('/api/users', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<{ full_name: string; email: string; role: string; is_active: boolean }>) =>
+    apiFetch<{ user: User }>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch(`/api/users/${id}`, { method: 'DELETE' }),
 };
 
 // ── Knowledge ─────────────────────────────────────────────────────────────────
@@ -120,7 +125,7 @@ export const knowledge = {
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-export type UserRole = 'architect_lead' | 'deep_contributor' | 'connector' | 'flow_guardian' | 'product_visionary' | 'devops_integrator' | 'quality_auditor' | 'stakeholder';
+export type UserRole = 'admin' | 'architect_lead' | 'deep_contributor' | 'connector' | 'flow_guardian' | 'product_visionary' | 'devops_integrator' | 'quality_auditor' | 'stakeholder';
 export type CognitiveType = 'deep_focus' | 'creative' | 'routine' | 'collaborative' | 'exploratory';
 export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'blocked' | 'done' | 'cancelled';
 export type TaskPriority = 'critical' | 'high' | 'medium' | 'low' | 'someday';

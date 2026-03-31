@@ -12,6 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 -- ============================================================
 
 CREATE TYPE user_role AS ENUM (
+  'admin',
   'architect_lead',
   'deep_contributor',
   'connector',

@@ -14,7 +14,7 @@ const RegisterSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   full_name: z.string().min(2),
-  role: z.enum(['architect_lead', 'deep_contributor', 'connector', 'flow_guardian', 'product_visionary', 'devops_integrator', 'quality_auditor', 'stakeholder']).optional(),
+  role: z.enum(['admin', 'architect_lead', 'deep_contributor', 'connector', 'flow_guardian', 'product_visionary', 'devops_integrator', 'quality_auditor', 'stakeholder']).optional(),
 });
 
 export async function authRoutes(fastify: FastifyInstance) {

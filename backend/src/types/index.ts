@@ -1,4 +1,5 @@
 export type UserRole =
+  | 'admin'
   | 'architect_lead'
   | 'deep_contributor'
   | 'connector'
