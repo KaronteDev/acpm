@@ -225,7 +225,7 @@ export default function DashboardPage() {
                   onClick={async () => {
                     const lines = brainDumpText.split('\n').filter(l => l.trim());
                     await Promise.all(lines.map(title =>
-                      tasksApi.create({ project_id: brainDumpProject, title: title.trim(), status: 'backlog', priority: 'medium', cognitive_type: 'routine', cognitive_points: 3 })
+                      tasksApi.create({ project_id: brainDumpProject, title: title.trim(), task_type: 'implementation', priority: 'medium', cognitive_type: 'routine', cognitive_points: 3 })
                     ));
                     setBrainDumpText('');
                     setShowBrainDump(false);
