@@ -11,9 +11,9 @@ const NAV = [
   { href: '/dashboard', icon: '⌘', label: 'Dashboard' },
   { href: '/projects', icon: '◈', label: 'Proyectos' },
   { href: '/kanban', icon: '⊞', label: 'Kanban' },
+  { href: '/sprint', icon: '⧖', label: 'Sprint' },
   null,
   { href: '/wellness', icon: '◐', label: 'Bienestar', badge: 'alerts' },
-  { href: '/sprint', icon: '⧖', label: 'Sprint' },
   { href: '/knowledge', icon: '◉', label: 'Conocimiento' },
   null,
   { href: '/admin/users', icon: '🛡', label: 'Usuarios', adminOnly: true },
@@ -140,6 +140,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               if (!item) return <div key={i} className="my-2 border-t border-border/50" />;
               if ('adminOnly' in item && item.adminOnly && user.role !== 'admin') return null;
               const active = pathname.startsWith(item.href);
+              
+              // Special handling for Projects link to restore last visited route
+              if (item.href === '/projects') {
+                return (
+                  <button
+                    key={item.href}
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        const lastRoute = localStorage.getItem('acpm_last_projects_route');
+                        
+                        // If last route was a task, go to that task
+                        if (lastRoute && lastRoute.startsWith('/tasks/')) {
+                          router.push(lastRoute);
+                        } 
+                        // Otherwise go to saved project or projects list
+                        else if (lastRoute && lastRoute.startsWith('/projects/')) {
+                          router.push(lastRoute);
+                        } 
+                        // Default to projects list
+                        else {
+                          router.push('/projects');
+                        }
+                      }
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 border-l-2 ${
+                      active
+                        ? 'bg-purple/10 text-purple border-purple'
+                        : 'text-text-2 border-transparent hover:bg-bg-3 hover:text-text-1'
+                    }`}
+                  >
+                    <span className="w-4 text-center text-base">{item.icon}</span>
+                    <span className="flex-1 font-medium text-left">{item.label}</span>
+                  </button>
+                );
+              }
+              
               return (
                 <Link
                   key={item.href}

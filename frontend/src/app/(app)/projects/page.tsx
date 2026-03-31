@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { projects } from '@/lib/api';
 import type { Project } from '@/lib/api';
@@ -29,6 +29,7 @@ export default function ProjectsPage() {
   const [filter, setFilter] = useState('active');
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Load saved filter from localStorage
   useEffect(() => {
@@ -54,8 +55,49 @@ export default function ProjectsPage() {
     }
   }, [filter]);
 
+  // Restore scroll position when projects load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !loading && scrollContainerRef.current) {
+      const saved = localStorage.getItem('acpm_projects_scroll');
+      if (saved) {
+        const scrollPos = parseInt(saved);
+        scrollContainerRef.current.scrollTop = scrollPos;
+      }
+    }
+  }, [loading]);
+
+  // Save scroll position before leaving
+  useEffect(() => {
+    const saveScroll = () => {
+      if (typeof window !== 'undefined' && scrollContainerRef.current) {
+        localStorage.setItem('acpm_projects_scroll', String(scrollContainerRef.current.scrollTop));
+      }
+    };
+
+    const handleScroll = () => {
+      if (typeof window !== 'undefined' && scrollContainerRef.current) {
+        localStorage.setItem('acpm_projects_scroll', String(scrollContainerRef.current.scrollTop));
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    container?.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      saveScroll();
+      container?.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Save current route when on projects page
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('acpm_last_projects_route', '/projects');
+    }
+  }, []);
+
   return (
-    <div className="h-full overflow-y-auto p-6">
+    <div className="h-full overflow-y-auto p-6" ref={scrollContainerRef}>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-text-0">Proyectos</h2>

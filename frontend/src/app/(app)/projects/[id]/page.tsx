@@ -30,6 +30,11 @@ export default function ProjectDetailPage() {
       setProject(p.project);
       setProjectTasks(t.tasks);
       setProjectSprints(s.sprints);
+      // Save current project ID to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('acpm_current_project', id);
+        localStorage.setItem('acpm_last_projects_route', `/projects/${id}`);
+      }
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -168,7 +173,13 @@ export default function ProjectDetailPage() {
               </Link>
             </div>
           ) : projectTasks.map(task => (
-            <Link key={task.id} href={`/tasks/${task.id}`}>
+            <Link key={task.id} href={`/tasks/${task.id}`}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('acpm_task_source_project', project.id);
+                }
+              }}
+            >
               <div className="flex items-center gap-3 bg-bg-2 border border-border hover:border-border-hi rounded-xl px-4 py-3 transition-all cursor-pointer group"
                 style={{ borderLeft: `3px solid ${COGNITIVE_TYPE_COLORS[task.cognitive_type]}` }}>
                 <div className="flex-1 min-w-0">

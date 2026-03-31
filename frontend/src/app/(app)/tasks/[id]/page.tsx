@@ -54,6 +54,14 @@ export default function TaskDetailPage() {
     tasks.get(id).then(r => setTask(r.task)).catch(() => {}).finally(() => setLoading(false));
   }, [id]);
 
+  // Save project ID and task ID when task loads - helps with navigation back
+  useEffect(() => {
+    if (task && task.project_id && typeof window !== 'undefined') {
+      localStorage.setItem('acpm_task_source_project', task.project_id);
+      localStorage.setItem('acpm_last_projects_route', `/tasks/${task.id}`);
+    }
+  }, [task?.id, task?.project_id]);
+
   // Load available users for assignment
   useEffect(() => {
     users.list().then(r => setAvailableUsers(r.users)).catch(() => {});
@@ -392,7 +400,19 @@ export default function TaskDetailPage() {
       <div className="max-w-5xl mx-auto">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-text-3 mb-5">
-          <button onClick={() => router.back()} className="hover:text-text-1">← Volver</button>
+          <button 
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                const sourceProject = localStorage.getItem('acpm_task_source_project');
+                if (sourceProject) {
+                  router.push(`/projects/${sourceProject}`);
+                } else {
+                  router.back();
+                }
+              }
+            }} 
+            className="hover:text-text-1"
+          >← Volver</button>
           <span>/</span>
           <span className="text-text-2">{task.project_name ?? 'Proyecto'}</span>
           {task.sprint_name && <><span>/</span><span className="text-text-2">{task.sprint_name}</span></>}
