@@ -5,6 +5,7 @@ import { authRoutes } from './routes/auth.js';
 import { projectRoutes } from './routes/projects.js';
 import { taskRoutes } from './routes/tasks.js';
 import { userRoutes } from './routes/users.js';
+import { notificationRoutes } from './routes/notifications.js';
 import { sprintRoutes, wellnessRoutes, dashboardRoutes, knowledgeRoutes } from './routes/other.js';
 
 async function main() {
@@ -30,6 +31,7 @@ async function main() {
   fastify.register(projectRoutes, { prefix: '/api/projects' });
   fastify.register(taskRoutes, { prefix: '/api/tasks' });
   fastify.register(userRoutes, { prefix: '/api/users' });
+  fastify.register(notificationRoutes, { prefix: '/api/notifications' });
   fastify.register(sprintRoutes, { prefix: '/api/sprints' });
   fastify.register(wellnessRoutes, { prefix: '/api/wellness' });
   fastify.register(dashboardRoutes, { prefix: '/api/dashboard' });

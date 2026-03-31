@@ -105,6 +105,13 @@ CREATE TYPE alert_severity AS ENUM (
   'critical'
 );
 
+CREATE TYPE notification_type AS ENUM (
+  'mention',
+  'comment_reply',
+  'task_assigned',
+  'task_completed'
+);
+
 -- ============================================================
 -- TABLES
 -- ============================================================
@@ -250,6 +257,25 @@ CREATE TABLE comments (
 );
 
 CREATE INDEX idx_comments_task ON comments(task_id);
+
+-- --------------------------------------------------------
+
+CREATE TABLE notifications (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  notification_type notification_type NOT NULL,
+  related_user_id UUID REFERENCES users(id) ON DELETE CASCADE, -- quien hizo la acción (quien te mencionó, etc)
+  comment_id    UUID REFERENCES comments(id) ON DELETE CASCADE,
+  task_id       UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  message       TEXT NOT NULL,
+  is_read       BOOLEAN NOT NULL DEFAULT FALSE,
+  read_at       TIMESTAMP WITH TIME ZONE,
+  created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_notifications_user ON notifications(user_id);
+CREATE INDEX idx_notifications_read ON notifications(user_id, is_read);
+CREATE INDEX idx_notifications_created ON notifications(created_at);
 
 -- --------------------------------------------------------
 

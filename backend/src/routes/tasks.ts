@@ -230,6 +230,34 @@ export async function taskRoutes(fastify: FastifyInstance) {
       [comment.id as string]
     );
 
+    // Extract mentions from content (@username format)
+    const mentionRegex = /@(\w+)/g;
+    const mentions = content.match(mentionRegex)?.map(m => m.slice(1)) || [];
+
+    if (mentions.length > 0) {
+      // Get mentioned users
+      const mentionedUsers = await query(
+        `SELECT id, full_name FROM users WHERE full_name ILIKE ANY($1) AND id != $2`,
+        [mentions.map(m => `%${m}%`), authorId]
+      );
+
+      // Create notifications for mentioned users
+      for (const user of mentionedUsers) {
+        const author = await queryOne(`SELECT full_name FROM users WHERE id = $1`, [authorId]);
+        await query(
+          `INSERT INTO notifications (user_id, notification_type, related_user_id, comment_id, task_id, message) VALUES ($1,$2,$3,$4,$5,$6)`,
+          [
+            user.id,
+            'mention',
+            authorId,
+            comment.id,
+            taskId,
+            `${author.full_name} te mencionó en un comentario`
+          ]
+        );
+      }
+    }
+
     return reply.status(201).send({ comment: withAuthor });
   });
 }

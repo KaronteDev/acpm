@@ -150,6 +150,21 @@ export interface Comment {
   replies?: Comment[];
 }
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  notification_type: 'mention' | 'comment_reply' | 'task_assigned' | 'task_completed';
+  related_user_id?: string;
+  comment_id?: string;
+  task_id?: string;
+  message: string;
+  is_read: boolean;
+  read_at?: string;
+  created_at: string;
+  related_user?: User;
+  comment?: Comment;
+}
+
 export interface CognitiveAlert {
   id: string;
   user_id: string;
