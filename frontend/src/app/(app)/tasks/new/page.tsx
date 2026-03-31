@@ -38,7 +38,7 @@ export default function NewTaskPage() {
   useEffect(() => {
     if (!form.project_id) return;
     sprints.list({ project_id: form.project_id, status: 'active' })
-      .then(r => setSprintList(r.sprints));
+      .then(r => setSprintList(r.sprints)).catch(() => {});
   }, [form.project_id]);
 
   async function submit(e: React.FormEvent) {

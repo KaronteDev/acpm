@@ -17,7 +17,7 @@ export default function SprintPage() {
     projects.list({ status: 'active' }).then(r => {
       setProjectList(r.projects);
       if (r.projects.length) setSelectedProject(r.projects[0].id);
-    });
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -31,13 +31,13 @@ export default function SprintPage() {
       setBacklog(bl.tasks);
       const active = sps.sprints.find(s => s.status === 'active');
       if (active) setSelectedSprint(active);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [selectedProject]);
 
   useEffect(() => {
     if (!selectedSprint) return;
     tasks.list({ sprint_id: selectedSprint.id })
-      .then(r => setSprintTasks(r.tasks));
+      .then(r => setSprintTasks(r.tasks)).catch(() => {});
   }, [selectedSprint]);
 
   async function addToSprint(task: Task) {

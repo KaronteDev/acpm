@@ -25,7 +25,7 @@ export default function TaskDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    tasks.get(id).then(r => setTask(r.task)).finally(() => setLoading(false));
+    tasks.get(id).then(r => setTask(r.task)).catch(() => {}).finally(() => setLoading(false));
   }, [id]);
 
   async function updateField(field: string, value: unknown) {
