@@ -125,6 +125,7 @@ export const dashboard = {
 export const users = {
   list: () => apiFetch<{ users: User[] }>('/api/users'),
   get: (id: string) => apiFetch<{ user: User }>(`/api/users/${id}`),
+  search: (q: string) => apiFetch<{ users: User[] }>(`/api/users/search?q=${encodeURIComponent(q)}`),
   create: (data: { email: string; full_name: string; password: string; role?: UserRole }) =>
     apiFetch<{ user: User }>('/api/users', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<{ full_name: string; email: string; role: string; is_active: boolean }>) =>
@@ -312,3 +313,18 @@ export interface FlowStats { total_sessions: number; flow_sessions: number; avg_
 export interface DashboardStats { active_projects: number; pcc_sprint: number; blocked_tasks: number; active_alerts: number; }
 export interface Activity { type: string; title: string; status: string; actor: string; timestamp: string; }
 export interface KnowledgeNode { id: string; project_id: string; title: string; content: string; node_type: string; author_id?: string; author_name?: string; tags: string[]; created_at: string; updated_at: string; }
+export interface Notification { id: string; user_id: string; notification_type: 'mention' | 'comment_reply' | 'task_assigned' | 'task_completed'; related_user_id?: string; comment_id?: string; task_id?: string; message: string; is_read: boolean; read_at?: string; created_at: string; related_user_name?: string; related_user_avatar?: string; comment_content?: string; task_title?: string; }
+
+// ── Notifications ──────────────────────────────────────────────────────────────
+export const notifications = {
+  list: (unread?: boolean) => 
+    apiFetch<{ notifications: Notification[] }>(`/api/notifications${unread ? '?unread=true' : ''}`),
+  unreadCount: () => 
+    apiFetch<{ unread_count: number }>('/api/notifications/unread-count'),
+  markAsRead: (id: string) => 
+    apiFetch<{ notification: Notification }>(`/api/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllAsRead: () => 
+    apiFetch<{ success: boolean }>('/api/notifications/mark-all-read', { method: 'PATCH' }),
+  delete: (id: string) => 
+    apiFetch<{ success: boolean }>(`/api/notifications/${id}`, { method: 'DELETE' }),
+};

@@ -17,6 +17,25 @@ const UpdateUserSchema = z.object({
 });
 
 export async function userRoutes(fastify: FastifyInstance) {
+  // GET /api/users/search - Search users for mentions (authenticated only)
+  fastify.get('/search', { preHandler: authenticate }, async (request, reply) => {
+    const { q } = request.query as { q?: string };
+
+    if (!q || q.length < 2) {
+      return reply.send({ users: [] });
+    }
+
+    const users = await query<User>(`
+      SELECT id, full_name, avatar_url, email
+      FROM users
+      WHERE is_active = TRUE AND (full_name ILIKE $1 OR email ILIKE $2)
+      ORDER BY full_name
+      LIMIT 10
+    `, [`%${q}%`, `%${q}%`]);
+
+    return reply.send({ users });
+  });
+
   // GET /api/users (admin only)
   fastify.get('/', { preHandler: requireAdmin }, async (request, reply) => {
     const { role, is_active, search } = request.query as { role?: string; is_active?: string; search?: string };

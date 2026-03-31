@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { projects, tasks, sprints } from '@/lib/api';
 import type { Project, Task, Sprint, ProjectMember } from '@/lib/api';
 import { COGNITIVE_TYPE_COLORS, COGNITIVE_TYPE_LABELS, TASK_STATUS_BG, TASK_STATUS_LABELS, getPCCClass, getInitials, formatDate, ROLE_LABELS } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState<'tasks' | 'sprints' | 'members'>('tasks');
   const [editMode, setEditMode] = useState(false);
   const [showEditPanel, setShowEditPanel] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -37,8 +39,8 @@ export default function ProjectDetailPage() {
     setProject(prev => prev ? { ...prev, ...updated } : null);
   }
 
-  async function deleteProject() {
-    if (!project || !window.confirm('¿Está seguro que desea eliminar este proyecto? Se eliminarán todas las tareas asociadas. No se puede deshacer.')) return;
+  async function handleDeleteProject() {
+    if (!project) return;
     try {
       await projects.delete(project.id);
       router.push('/projects');
@@ -92,27 +94,25 @@ export default function ProjectDetailPage() {
             {project.tags?.map(t => <span key={t} className="text-[9px] font-mono bg-bg-4 text-text-3 px-1.5 py-0.5 rounded">{t}</span>)}
           </div>
         </div>
-        <div className="flex gap-2 ml-4 flex-col">
-          <div className="flex gap-2">
-            <button
-              className="btn btn-ghost text-xs"
-              onClick={() => setShowEditPanel(true)}
-            >
-              ✎ Editar Todo
-            </button>
-            <Link href={`/kanban?project=${project.id}`}>
-              <button className="btn btn-ghost text-xs">⊞ Kanban</button>
-            </Link>
-            <Link href={`/tasks/new?project=${project.id}`}>
-              <button className="btn btn-primary text-xs">+ Nueva Tarea</button>
-            </Link>
-          </div>
+        <div className="flex gap-2 ml-4">
           <button
-            className="btn btn-ghost btn-error text-xs opacity-70 hover:opacity-100"
-            onClick={deleteProject}
+            className="px-3 py-2 rounded-lg bg-purple/10 text-purple hover:bg-purple/20 hover:shadow-sm transition-all text-xs font-medium border border-purple/30 hover:border-purple/50"
+            onClick={() => setShowEditPanel(true)}
           >
-            🗑 Eliminar
+            ✎ Editar proyecto
           </button>
+          <button
+            className="px-3 py-2 rounded-lg bg-red/10 text-red hover:bg-red/20 hover:shadow-sm transition-all text-xs font-medium border border-red/30 hover:border-red/50"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            🗑 Eliminar proyecto
+          </button>
+          <Link href={`/kanban?project=${project.id}`}>
+            <button className="btn btn-ghost text-xs">⊞ Kanban</button>
+          </Link>
+          <Link href={`/tasks/new?project=${project.id}`}>
+            <button className="btn btn-primary text-xs">+ Nueva Tarea</button>
+          </Link>
         </div>
       </div>
 
@@ -321,6 +321,21 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Eliminar proyecto"
+        message="¿Está seguro que desea eliminar este proyecto? Se eliminarán todas las tareas asociadas. No se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          handleDeleteProject();
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

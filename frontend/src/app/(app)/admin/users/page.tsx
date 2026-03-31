@@ -5,6 +5,7 @@ import { users } from '@/lib/api';
 import type { User, UserRole } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { ROLE_LABELS, ROLE_COLOR, getInitials, formatDate } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const ALL_ROLES: UserRole[] = [
   'admin', 'architect_lead', 'deep_contributor', 'connector',
@@ -21,6 +22,8 @@ export default function AdminUsersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
   // Redirect non-admin
   useEffect(() => {
@@ -60,10 +63,17 @@ export default function AdminUsersPage() {
   }
 
   async function handleDeleteUser(userId: string) {
-    if (!window.confirm('¿Está seguro que desea eliminar este usuario? No se puede deshacer.')) return;
+    setUserToDelete(userId);
+    setShowDeleteConfirm(true);
+  }
+
+  async function confirmDeleteUser() {
+    if (!userToDelete) return;
     try {
-      await users.delete(userId);
-      setUserList(prev => prev.filter(u => u.id !== userId));
+      await users.delete(userToDelete);
+      setUserList(prev => prev.filter(u => u.id !== userToDelete));
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error al eliminar usuario');
     }
@@ -101,18 +111,18 @@ export default function AdminUsersPage() {
       ) : (
         <div className="space-y-2">
           {/* Header */}
-          <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_auto] gap-4 px-4 py-2 text-[10px] uppercase tracking-wider text-text-3 font-semibold">
+          <div className="grid grid-cols-[2fr_2fr_1.5fr_1fr_1.8fr] gap-4 px-4 py-2 text-[10px] uppercase tracking-wider text-text-3 font-semibold">
             <span>Usuario</span>
             <span>Email</span>
             <span>Rol</span>
             <span>Estado</span>
-            <span className="w-20 text-right">Acciones</span>
+            <span className="text-right">Acciones</span>
           </div>
 
           {userList.map(u => (
             <div
               key={u.id}
-              className={`grid grid-cols-[2fr_2fr_1.5fr_1fr_auto] gap-4 items-center px-4 py-3 rounded-lg border transition-colors ${
+              className={`grid grid-cols-[2fr_2fr_1.5fr_1fr_1.8fr] gap-4 items-center px-4 py-3 rounded-lg border transition-colors ${
                 u.is_active ? 'bg-bg-2 border-border hover:border-border-hi' : 'bg-bg-2/50 border-border/50 opacity-60'
               }`}
             >
@@ -153,22 +163,22 @@ export default function AdminUsersPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-1 w-20 justify-end">
+              <div className="flex gap-2 justify-end">
                 {u.id !== currentUser?.id && (
                   <>
                     <button
                       onClick={() => { setEditingId(u.id); setShowEditPanel(true); }}
-                      className="text-xs px-2 py-1 rounded text-purple hover:bg-purple/10 transition-colors"
+                      className="px-3 py-2 rounded-lg bg-purple/10 text-purple hover:bg-purple/20 hover:shadow-sm transition-all text-xs font-medium border border-purple/30 hover:border-purple/50"
                       title="Editar usuario"
                     >
-                      ✎
+                      ✎ Editar
                     </button>
                     <button
                       onClick={() => handleDeleteUser(u.id)}
-                      className="text-xs px-2 py-1 rounded text-red hover:bg-red/10 transition-colors"
+                      className="px-3 py-2 rounded-lg bg-red/10 text-red hover:bg-red/20 hover:shadow-sm transition-all text-xs font-medium border border-red/30 hover:border-red/50"
                       title="Eliminar usuario"
                     >
-                      🗑
+                      🗑 Borrar
                     </button>
                   </>
                 )}
@@ -177,6 +187,21 @@ export default function AdminUsersPage() {
           ))}
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Eliminar usuario"
+        message="¿Está seguro que desea eliminar este usuario? No se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={() => confirmDeleteUser()}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setUserToDelete(null);
+        }}
+      />
     </div>
   );
 }

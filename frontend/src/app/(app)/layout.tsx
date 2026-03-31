@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { auth } from '@/lib/api';
 import { ROLE_LABELS, getInitials } from '@/lib/utils';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const NAV = [
   { href: '/dashboard', icon: '⌘', label: 'Dashboard' },
@@ -129,9 +130,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-text-2 bg-bg-3 border border-border rounded-lg px-3 py-1.5 cursor-pointer hover:border-border-hi">
-            <span>Buscar</span>
-            <span className="kbd">⌘K</span>
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div className="flex items-center gap-1.5 text-xs text-text-2 bg-bg-3 border border-border rounded-lg px-3 py-1.5 cursor-pointer hover:border-border-hi">
+              <span>Buscar</span>
+              <span className="kbd">⌘K</span>
+            </div>
           </div>
         </header>
 

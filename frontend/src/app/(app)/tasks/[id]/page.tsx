@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { tasks, users } from '@/lib/api';
 import type { Task, User, DoD, CognitiveSession, TaskComment } from '@/lib/api';
@@ -8,6 +8,7 @@ import {
   PRIORITY_LABELS, PRIORITY_COLORS, getPCCClass, formatDateTime, formatDuration, getInitials, PCC_VALUES
 } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,10 @@ export default function TaskDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [startingSession, setStartingSession] = useState(false);
   const [energyModal, setEnergyModal] = useState(false);
+  const [mentionUsers, setMentionUsers] = useState<Awaited<ReturnType<typeof users.search>>['users']>([]);
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -47,9 +52,60 @@ export default function TaskDetailPage() {
       const { comment } = await tasks.addComment(task.id, { content: newComment, is_thinking: isThinking });
       setTask(prev => prev ? { ...prev, comments: [...(prev.comments ?? []), comment as unknown as TaskComment] } : null);
       setNewComment('');
+      setShowMentionMenu(false);
     } finally {
       setSubmittingComment(false);
     }
+  }
+
+  async function handleCommentChange(value: string) {
+    setNewComment(value);
+    
+    // Detect @mentions
+    const lastAtIndex = value.lastIndexOf('@');
+    const lastSpaceIndex = value.lastIndexOf(' ', lastAtIndex);
+    
+    if (lastAtIndex > -1 && (lastSpaceIndex === -1 || lastSpaceIndex < lastAtIndex)) {
+      const query = value.slice(lastAtIndex + 1);
+      
+      if (query.length >= 2 && !query.includes(' ')) {
+        setMentionQuery(query);
+        setShowMentionMenu(true);
+        
+        try {
+          const { users: foundUsers } = await users.search(query);
+          setMentionUsers(foundUsers);
+        } catch {
+          setMentionUsers([]);
+        }
+      } else if (query.length < 2) {
+        setShowMentionMenu(false);
+      }
+    } else {
+      setShowMentionMenu(false);
+    }
+  }
+
+  function insertMention(user: User) {
+    const lastAtIndex = newComment.lastIndexOf('@');
+    const before = newComment.slice(0, lastAtIndex);
+    const after = newComment.slice(lastAtIndex + mentionQuery.length + 1);
+    setNewComment(`${before}@${user.full_name} ${after}`);
+    setShowMentionMenu(false);
+  }
+
+  function renderCommentContent(content: string) {
+    // Highlight mentions
+    const parts = content.split(/(@\w+)/);
+    return parts.map((part, i) => 
+      part.startsWith('@') ? (
+        <span key={i} className="font-semibold text-teal-dark bg-teal-dark/10 px-1 rounded">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
   }
 
   async function startFlowSession(energy: number, flow: boolean) {
@@ -64,8 +120,8 @@ export default function TaskDetailPage() {
     }
   }
 
-  async function deleteTask() {
-    if (!task || !window.confirm('¿Está seguro que desea eliminar esta tarea? No se puede deshacer.')) return;
+  async function handleDeleteTask() {
+    if (!task) return;
     try {
       await tasks.delete(task.id);
       router.push('/tasks');
@@ -266,20 +322,40 @@ export default function TaskDetailPage() {
                         {c.is_thinking && <span className="text-[9px] text-amber bg-amber/10 px-1.5 rounded">💭 En voz alta</span>}
                         <span className="text-text-3 ml-auto text-[10px]">{formatDateTime(c.created_at)}</span>
                       </div>
-                      <p className="text-text-1 leading-relaxed">{c.content}</p>
+                      <p className="text-text-1 leading-relaxed">{renderCommentContent(c.content)}</p>
                     </div>
                   ))}
                 </div>
               )}
               {/* Comment input */}
-              <div className="bg-bg-2 border border-border rounded-xl p-3">
+              <div className="bg-bg-2 border border-border rounded-xl p-3 relative">
                 <textarea
-                  className="textarea bg-transparent border-0 p-0 mb-2 focus:ring-0"
+                  className="textarea bg-transparent border-0 p-0 mb-2 focus:ring-0 w-full"
                   rows={3}
-                  placeholder="Añade un comentario... Markdown soportado"
+                  placeholder="Añade un comentario... Usa @nombre para citar usuarios"
                   value={newComment}
-                  onChange={e => setNewComment(e.target.value)}
+                  onChange={e => handleCommentChange(e.target.value)}
                 />
+                
+                {/* Mention autocomplete */}
+                {showMentionMenu && mentionUsers.length > 0 && (
+                  <div className="absolute bottom-full left-3 right-3 mb-1 bg-bg-3 border border-border rounded-lg overflow-hidden shadow-lg z-50">
+                    {mentionUsers.map(user => (
+                      <button
+                        key={user.id}
+                        className="w-full text-left px-3 py-2 hover:bg-bg-4 transition-colors flex items-center gap-2 text-xs"
+                        onClick={() => insertMention(user)}
+                      >
+                        <div className="w-4 h-4 rounded-full bg-purple/20 flex items-center justify-center text-[7px] font-bold text-purple">
+                          {user.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <span className="font-semibold text-text-1">{user.full_name}</span>
+                        <span className="text-text-3 text-[9px]">{user.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 text-xs text-text-2 cursor-pointer">
                     <input type="checkbox" checked={isThinking} onChange={e => setIsThinking(e.target.checked)} className="accent-amber" />
@@ -320,7 +396,7 @@ export default function TaskDetailPage() {
 
             <button
               className="btn btn-ghost btn-error w-full justify-center text-xs opacity-70 hover:opacity-100"
-              onClick={deleteTask}
+              onClick={() => setShowDeleteConfirm(true)}
             >
               🗑 Eliminar Tarea
             </button>
@@ -416,6 +492,21 @@ export default function TaskDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Eliminar tarea"
+        message="¿Está seguro que desea eliminar esta tarea? No se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          handleDeleteTask();
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }
