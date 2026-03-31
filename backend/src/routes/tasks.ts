@@ -55,15 +55,17 @@ export async function taskRoutes(fastify: FastifyInstance) {
       SELECT t.*,
         u.full_name as assignee_name, u.avatar_url as assignee_avatar, u.role as assignee_role,
         cu.full_name as creator_name,
+        p.name as project_name,
         COUNT(st.id) as subtask_count,
         COUNT(st.id) FILTER (WHERE st.status = 'done') as completed_subtasks,
         (SELECT row_to_json(cs.*) FROM cognitive_sessions cs WHERE cs.task_id = t.id AND cs.ended_at IS NULL LIMIT 1) as active_session
       FROM tasks t
       LEFT JOIN users u ON u.id = t.assignee_id
       LEFT JOIN users cu ON cu.id = t.created_by
+      LEFT JOIN projects p ON p.id = t.project_id
       LEFT JOIN tasks st ON st.parent_task_id = t.id
       WHERE ${conditions.join(' AND ')} AND t.parent_task_id IS NULL
-      GROUP BY t.id, u.full_name, u.avatar_url, u.role, cu.full_name
+      GROUP BY t.id, u.full_name, u.avatar_url, u.role, cu.full_name, p.name
       ORDER BY
         CASE WHEN t.sprint_id IS NOT NULL THEN 0 ELSE 1 END,
         CASE WHEN t.sprint_id IS NOT NULL THEN t.display_order ELSE NULL END,
@@ -102,11 +104,13 @@ export async function taskRoutes(fastify: FastifyInstance) {
       SELECT t.*,
         u.full_name as assignee_name, u.avatar_url as assignee_avatar,
         cu.full_name as creator_name,
-        sp.name as sprint_name
+        sp.name as sprint_name,
+        p.name as project_name
       FROM tasks t
       LEFT JOIN users u ON u.id = t.assignee_id
       LEFT JOIN users cu ON cu.id = t.created_by
       LEFT JOIN sprints sp ON sp.id = t.sprint_id
+      LEFT JOIN projects p ON p.id = t.project_id
       WHERE t.id = $1
     `, [id]);
 

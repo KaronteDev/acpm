@@ -22,6 +22,9 @@ export default function TaskDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [startingSession, setStartingSession] = useState(false);
   const [energyModal, setEnergyModal] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<User[]>([]);
+  const [assigneeSearchOpen, setAssigneeSearchOpen] = useState(false);
+  const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
   const [mentionUsers, setMentionUsers] = useState<Awaited<ReturnType<typeof users.search>>['users']>([]);
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
@@ -50,6 +53,11 @@ export default function TaskDetailPage() {
     setLoading(true);
     tasks.get(id).then(r => setTask(r.task)).catch(() => {}).finally(() => setLoading(false));
   }, [id]);
+
+  // Load available users for assignment
+  useEffect(() => {
+    users.list().then(r => setAvailableUsers(r.users)).catch(() => {});
+  }, []);
 
   // Extract comment ID from hash and scroll to it
   useEffect(() => {
@@ -744,7 +752,108 @@ export default function TaskDetailPage() {
 
             {/* Metadata */}
             <div className="bg-bg-2 border border-border rounded-xl p-3 space-y-3">
+              <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider mb-2">Información</div>
+              
+              {task.project_name && (
+                <div>
+                  <label className="text-[10px] text-text-3 block mb-1">Proyecto</label>
+                  <div className="text-xs text-text-0 px-3 py-2 bg-bg-3 rounded-lg font-semibold">{task.project_name}</div>
+                </div>
+              )}
+
+              {task.creator_name && (
+                <div>
+                  <label className="text-[10px] text-text-3 block mb-1">Creado por</label>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-bg-3 rounded-lg">
+                    <div className="w-5 h-5 rounded-full bg-purple/20 flex items-center justify-center text-[8px] font-bold text-purple">
+                      {getInitials(task.creator_name)}
+                    </div>
+                    <span className="text-xs text-text-1 font-semibold">{task.creator_name}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider mb-2">Configuración</div>
+              
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Asignado a</label>
+                <div className="relative">
+                  <button 
+                    className="w-full flex items-center gap-2 px-3 py-2 bg-bg-3 rounded-lg hover:bg-bg-4 transition-colors justify-between text-xs text-text-1 group"
+                    onClick={() => setAssigneeSearchOpen(!assigneeSearchOpen)}
+                  >
+                    <span className="flex items-center gap-2 flex-1">
+                      {task?.assignee_name ? (
+                        <>
+                          <div className="w-4 h-4 rounded-full bg-purple/20 flex items-center justify-center text-[7px] font-bold text-purple">
+                            {getInitials(task.assignee_name)}
+                          </div>
+                          <span>{task.assignee_name}</span>
+                        </>
+                      ) : (
+                        <span className="text-text-3">Sin asignar</span>
+                      )}
+                    </span>
+                    <span className="text-text-3 group-hover:text-text-2">⋯</span>
+                  </button>
+                  
+                  {assigneeSearchOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-bg-3 border border-border rounded-lg shadow-lg z-50 max-h-56 overflow-y-auto">
+                      <div className="p-2 sticky top-0 bg-bg-3 border-b border-border">
+                        <input
+                          type="text"
+                          placeholder="Buscar usuario..."
+                          className="input text-xs w-full"
+                          value={assigneeSearchQuery}
+                          onChange={e => setAssigneeSearchQuery(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      {availableUsers
+                        .filter(u => 
+                          u.full_name.toLowerCase().includes(assigneeSearchQuery.toLowerCase()) ||
+                          u.email.toLowerCase().includes(assigneeSearchQuery.toLowerCase())
+                        )
+                        .map(u => (
+                          <button
+                            key={u.id}
+                            onClick={() => {
+                              setTask(prev => prev ? { ...prev, assignee_id: u.id, assignee_name: u.full_name } : null);
+                              updateField('assignee_id', u.id);
+                              setAssigneeSearchOpen(false);
+                              setAssigneeSearchQuery('');
+                            }}
+                            className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors text-xs hover:bg-bg-4 ${
+                              task?.assignee_id === u.id ? 'bg-purple/15 border-l-2 border-l-purple' : ''
+                            }`}
+                          >
+                            <div className="w-5 h-5 rounded-full bg-purple/20 flex items-center justify-center text-[8px] font-bold text-purple">
+                              {getInitials(u.full_name)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-text-1 truncate">{u.full_name}</p>
+                              <p className="text-[9px] text-text-3 truncate">{u.email}</p>
+                            </div>
+                            {task?.assignee_id === u.id && <span className="text-purple">✓</span>}
+                          </button>
+                        ))}
+                      {task?.assignee_id && (
+                        <button
+                          onClick={() => {
+                            setTask(prev => prev ? { ...prev, assignee_id: null, assignee_name: null } : null);
+                            updateField('assignee_id', null);
+                            setAssigneeSearchOpen(false);
+                            setAssigneeSearchQuery('');
+                          }}
+                          className="w-full text-left px-3 py-2 flex items-center gap-2 transition-colors text-xs hover:bg-bg-4 border-t border-border text-text-3 hover:text-text-2"
+                        >
+                          ✕ Desasignar
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
               
               <div>
                 <label className="text-[10px] text-text-3 block mb-1">Estado</label>

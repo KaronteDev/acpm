@@ -30,11 +30,28 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
 
+  // Load saved filter from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('acpm_projects_filter');
+      if (saved && ['all', 'active', 'draft', 'paused', 'completed', 'archived'].includes(saved)) {
+        setFilter(saved);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     projects.list(filter !== 'all' ? { status: filter } : undefined)
       .then(r => setAllProjects(r.projects))
       .finally(() => setLoading(false));
+  }, [filter]);
+
+  // Save filter to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('acpm_projects_filter', filter);
+    }
   }, [filter]);
 
   return (

@@ -24,9 +24,25 @@ export default function SprintPage() {
   useEffect(() => {
     projects.list({ status: 'active' }).then(r => {
       setProjectList(r.projects);
-      if (r.projects.length) setSelectedProject(r.projects[0].id);
+      // Load saved project from localStorage
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('acpm_sprint_project');
+        const projectExists = r.projects.some(p => p.id === saved);
+        if (saved && projectExists) {
+          setSelectedProject(saved);
+        } else if (r.projects.length) {
+          setSelectedProject(r.projects[0].id);
+        }
+      }
     }).catch(() => {});
   }, []);
+
+  // Save selected project to localStorage
+  useEffect(() => {
+    if (selectedProject && typeof window !== 'undefined') {
+      localStorage.setItem('acpm_sprint_project', selectedProject);
+    }
+  }, [selectedProject]);
 
   useEffect(() => {
     if (!selectedProject) return;
