@@ -135,7 +135,7 @@ export default function WellnessPage() {
                   <div key={m.id} className="cursor-pointer hover:bg-bg-3 rounded-lg p-2 -mx-2 transition-colors" onClick={() => setSelected(selected?.id === m.id ? null : m)}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs text-text-1">{m.full_name.split(' ')[0]}</span>
-                      <span className="text-xs font-mono font-bold" style={{ color }}>{icc.toFixed(1)}/10</span>
+                      <span className="text-xs font-mono font-bold" style={{ color }}>{(typeof icc === 'number' ? icc : parseFloat(icc as any) || 0).toFixed(1)}/10</span>
                     </div>
                     <div className="bg-bg-4 rounded-full h-1.5">
                       <div className="h-1.5 rounded-full transition-all" style={{ width: `${icc * 10}%`, backgroundColor: color }} />
@@ -180,7 +180,7 @@ export default function WellnessPage() {
             {[
               { label: 'Sesiones 7d', value: selected.total_sessions_7d, icon: '⏱' },
               { label: 'Sesiones flujo', value: selected.flow_sessions_7d, icon: '🛡' },
-              { label: 'Energía media', value: selected.avg_energy_7d?.toFixed(1) ?? '-', icon: '⚡' },
+              { label: 'Energía media', value: (typeof selected.avg_energy_7d === 'number' ? selected.avg_energy_7d : parseFloat(selected.avg_energy_7d as any) || 0).toFixed(1), icon: '⚡' },
               { label: 'PCC activos', value: selected.active_pcc_load, icon: '◉' },
             ].map((s, i) => (
               <div key={i} className="bg-bg-3 rounded-xl p-3 text-center">

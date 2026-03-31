@@ -130,12 +130,15 @@ export function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
-export function calcICC(activePCC: number, overloadThreshold: number = 10): number {
-  return Math.min(10, (activePCC / overloadThreshold) * 10);
+export function calcICC(activePCC: number | string, overloadThreshold: number | string = 10): number {
+  const pcc = typeof activePCC === 'number' ? activePCC : parseFloat(activePCC as any) || 0;
+  const threshold = typeof overloadThreshold === 'number' ? overloadThreshold : parseFloat(overloadThreshold as any) || 10;
+  return Math.min(10, (pcc / threshold) * 10);
 }
 
-export function getICCColor(icc: number): string {
-  if (icc >= 8) return '#E74C3C';
-  if (icc >= 6) return '#EF9F27';
+export function getICCColor(icc: number | string): string {
+  const value = typeof icc === 'number' ? icc : parseFloat(icc as any) || 0;
+  if (value >= 8) return '#E74C3C';
+  if (value >= 6) return '#EF9F27';
   return '#1D9E75';
 }
