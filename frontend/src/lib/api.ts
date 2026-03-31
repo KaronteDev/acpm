@@ -65,9 +65,12 @@ export const projects = {
     apiFetch<{ project: Project }>('/api/projects', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Project>) =>
     apiFetch<{ project: Project }>(`/api/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id: string) => apiFetch(`/api/projects/${id}`, { method: 'DELETE' }),
   members: (id: string) => apiFetch<{ members: ProjectMember[] }>(`/api/projects/${id}/members`),
   addMember: (id: string, user_id: string, role: string) =>
     apiFetch(`/api/projects/${id}/members`, { method: 'POST', body: JSON.stringify({ user_id, role }) }),
+  removeMember: (id: string, memberId: string) =>
+    apiFetch(`/api/projects/${id}/members/${memberId}`, { method: 'DELETE' }),
   stats: (id: string) => apiFetch(`/api/projects/${id}/stats`),
 };
 

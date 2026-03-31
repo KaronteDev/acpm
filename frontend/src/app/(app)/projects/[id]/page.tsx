@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { projects, tasks, sprints } from '@/lib/api';
 import type { Project, Task, Sprint, ProjectMember } from '@/lib/api';
@@ -8,11 +8,14 @@ import { COGNITIVE_TYPE_COLORS, COGNITIVE_TYPE_LABELS, TASK_STATUS_BG, TASK_STAT
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [projectTasks, setProjectTasks] = useState<Task[]>([]);
   const [projectSprints, setProjectSprints] = useState<Sprint[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'tasks' | 'sprints' | 'members'>('tasks');
+  const [editMode, setEditMode] = useState(false);
+  const [showEditPanel, setShowEditPanel] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -27,6 +30,22 @@ export default function ProjectDetailPage() {
       setProjectSprints(s.sprints);
     }).finally(() => setLoading(false));
   }, [id]);
+
+  async function updateProject(field: string, value: unknown) {
+    if (!project) return;
+    const { project: updated } = await projects.update(project.id, { [field]: value } as Partial<Project>);
+    setProject(prev => prev ? { ...prev, ...updated } : null);
+  }
+
+  async function deleteProject() {
+    if (!project || !window.confirm('¿Está seguro que desea eliminar este proyecto? Se eliminarán todas las tareas asociadas. No se puede deshacer.')) return;
+    try {
+      await projects.delete(project.id);
+      router.push('/projects');
+    } catch (err) {
+      alert('Error al eliminar el proyecto');
+    }
+  }
 
   if (loading) return <div className="flex items-center justify-center h-full text-text-3">Cargando proyecto...</div>;
   if (!project) return <div className="flex items-center justify-center h-full text-text-3">Proyecto no encontrado</div>;
@@ -45,19 +64,55 @@ export default function ProjectDetailPage() {
             <span>/</span>
             <span className="text-text-2">{project.name}</span>
           </div>
-          <h2 className="text-2xl font-bold text-text-0">{project.name}</h2>
-          {project.description && <p className="text-sm text-text-2 mt-1 max-w-2xl">{project.description}</p>}
+          {editMode ? (
+            <>
+              <textarea
+                className="textarea text-2xl font-bold w-full mb-2"
+                defaultValue={project.name}
+                autoFocus
+                rows={2}
+                onBlur={e => { updateProject('name', e.target.value); setEditMode(false); }}
+              />
+              <textarea
+                className="textarea text-sm w-full mb-2"
+                defaultValue={project.description}
+                rows={2}
+                onBlur={e => updateProject('description', e.target.value)}
+                placeholder="Descripción del proyecto"
+              />
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-text-0 cursor-text hover:bg-bg-3 rounded-lg px-2 py-1 -mx-2 transition-colors"
+                onClick={() => setEditMode(true)}>{project.name}</h2>
+              {project.description && <p className="text-sm text-text-2 mt-1 max-w-2xl hover:bg-bg-3 rounded-lg px-2 py-1 cursor-text" onClick={() => setEditMode(true)}>{project.description}</p>}
+            </>
+          )}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {project.tags?.map(t => <span key={t} className="text-[9px] font-mono bg-bg-4 text-text-3 px-1.5 py-0.5 rounded">{t}</span>)}
           </div>
         </div>
-        <div className="flex gap-2 ml-4">
-          <Link href={`/kanban?project=${project.id}`}>
-            <button className="btn btn-ghost text-xs">⊞ Kanban</button>
-          </Link>
-          <Link href={`/tasks/new?project=${project.id}`}>
-            <button className="btn btn-primary text-xs">+ Nueva Tarea</button>
-          </Link>
+        <div className="flex gap-2 ml-4 flex-col">
+          <div className="flex gap-2">
+            <button
+              className="btn btn-ghost text-xs"
+              onClick={() => setShowEditPanel(true)}
+            >
+              ✎ Editar Todo
+            </button>
+            <Link href={`/kanban?project=${project.id}`}>
+              <button className="btn btn-ghost text-xs">⊞ Kanban</button>
+            </Link>
+            <Link href={`/tasks/new?project=${project.id}`}>
+              <button className="btn btn-primary text-xs">+ Nueva Tarea</button>
+            </Link>
+          </div>
+          <button
+            className="btn btn-ghost btn-error text-xs opacity-70 hover:opacity-100"
+            onClick={deleteProject}
+          >
+            🗑 Eliminar
+          </button>
         </div>
       </div>
 
@@ -180,6 +235,90 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Edit Panel Modal */}
+      {showEditPanel && (
+        <div className="fixed inset-0 bg-bg-0/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-2 border border-border rounded-2xl w-full max-w-md p-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-text-0 mb-4">Editar Proyecto</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Nombre</label>
+                <input type="text" className="input w-full" defaultValue={project.name}
+                  onBlur={e => updateProject('name', e.target.value)} />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Descripción</label>
+                <textarea className="textarea w-full" rows={3} defaultValue={project.description}
+                  onBlur={e => updateProject('description', e.target.value)} 
+                  placeholder="Descripción del proyecto" />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Tipo de Proyecto</label>
+                <select className="select w-full" value={project.project_type} 
+                  onChange={e => updateProject('project_type', e.target.value)}>
+                  {(['exploration','delivery','research','maintenance','innovation'] as const).map(t => 
+                    <option key={t} value={t}>{t}</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Metodología</label>
+                <select className="select w-full" value={project.methodology} 
+                  onChange={e => updateProject('methodology', e.target.value)}>
+                  {(['kanban_aacc','adaptive_sprint','async_deep','hybrid'] as const).map(m => 
+                    <option key={m} value={m}>{m}</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Complejidad Cognitiva (1-10)</label>
+                <input type="number" className="input w-full" min="1" max="10" value={project.cognitive_complexity} 
+                  onChange={e => updateProject('cognitive_complexity', +e.target.value)} />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Fecha de Inicio</label>
+                <input type="date" className="input w-full" value={project.start_date?.split('T')[0] || ''} 
+                  onChange={e => updateProject('start_date', e.target.value)} />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Fecha Objetivo</label>
+                <input type="date" className="input w-full" value={project.target_date?.split('T')[0] || ''} 
+                  onChange={e => updateProject('target_date', e.target.value)} />
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Estado</label>
+                <select className="select w-full" value={project.status} 
+                  onChange={e => updateProject('status', e.target.value)}>
+                  {(['draft','active','paused','completed','archived'] as const).map(s => 
+                    <option key={s} value={s}>{s}</option>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-text-2 block mb-1">Etiquetas</label>
+                <input type="text" className="input w-full" value={project.tags?.join(', ') || ''} 
+                  onChange={e => updateProject('tags', e.target.value ? e.target.value.split(',').map(t => t.trim()) : [])} 
+                  placeholder="Separadas por comas" />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button onClick={() => setShowEditPanel(false)} className="btn btn-ghost flex-1 justify-center">Cancelar</button>
+              <button onClick={() => setShowEditPanel(false)} className="btn btn-primary flex-1 justify-center">Guardar</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

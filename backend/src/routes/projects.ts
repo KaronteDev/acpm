@@ -162,6 +162,29 @@ export async function projectRoutes(fastify: FastifyInstance) {
     return reply.status(201).send({ message: 'Miembro añadido' });
   });
 
+  // DELETE /api/projects/:id
+  fastify.delete('/:id', { preHandler: authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { id: userId } = getUserFromRequest(request);
+
+    // Check if user is owner
+    const project = await queryOne(`SELECT owner_id FROM projects WHERE id = $1`, [id]);
+    if (!project || project.owner_id !== userId) {
+      return reply.status(403).send({ error: 'No tiene permisos para eliminar este proyecto' });
+    }
+
+    // Delete all tasks associated with the project
+    await query(`DELETE FROM tasks WHERE project_id = $1`, [id]);
+    
+    // Delete project members
+    await query(`DELETE FROM project_members WHERE project_id = $1`, [id]);
+    
+    // Delete project
+    await query(`DELETE FROM projects WHERE id = $1`, [id]);
+
+    return reply.send({ message: 'Proyecto eliminado' });
+  });
+
   // GET /api/projects/:id/stats
   fastify.get('/:id/stats', { preHandler: authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -185,5 +208,20 @@ export async function projectRoutes(fastify: FastifyInstance) {
     `, [id]);
 
     return reply.send({ stats: taskStats, cognitive_distribution: cogTypeDistribution });
+  });
+
+  // DELETE /api/projects/:id/members/:memberId
+  fastify.delete('/:id/members/:memberId', { preHandler: authenticate }, async (request, reply) => {
+    const { id, memberId } = request.params as { id: string; memberId: string };
+    const { id: userId } = getUserFromRequest(request);
+
+    // Check if user is owner
+    const project = await queryOne(`SELECT owner_id FROM projects WHERE id = $1`, [id]);
+    if (!project || project.owner_id !== userId) {
+      return reply.status(403).send({ error: 'No tiene permisos para modificar este proyecto' });
+    }
+
+    await query(`DELETE FROM project_members WHERE project_id = $1 AND user_id = $2`, [id, memberId]);
+    return reply.send({ message: 'Miembro removido del proyecto' });
   });
 }

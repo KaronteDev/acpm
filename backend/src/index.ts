@@ -4,7 +4,8 @@ import jwt from '@fastify/jwt';
 import { authRoutes } from './routes/auth.js';
 import { projectRoutes } from './routes/projects.js';
 import { taskRoutes } from './routes/tasks.js';
-import { sprintRoutes, wellnessRoutes, dashboardRoutes, usersRoutes, knowledgeRoutes } from './routes/other.js';
+import { userRoutes } from './routes/users.js';
+import { sprintRoutes, wellnessRoutes, dashboardRoutes, knowledgeRoutes } from './routes/other.js';
 
 async function main() {
   const fastify = Fastify({
@@ -28,10 +29,10 @@ async function main() {
   fastify.register(authRoutes, { prefix: '/api/auth' });
   fastify.register(projectRoutes, { prefix: '/api/projects' });
   fastify.register(taskRoutes, { prefix: '/api/tasks' });
+  fastify.register(userRoutes, { prefix: '/api/users' });
   fastify.register(sprintRoutes, { prefix: '/api/sprints' });
   fastify.register(wellnessRoutes, { prefix: '/api/wellness' });
   fastify.register(dashboardRoutes, { prefix: '/api/dashboard' });
-  fastify.register(usersRoutes, { prefix: '/api/users' });
   fastify.register(knowledgeRoutes, { prefix: '/api/knowledge' });
 
   // Error handler

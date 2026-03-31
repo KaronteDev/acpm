@@ -8,15 +8,15 @@
 
 ## Índice
 
-1.  [Introducción y conceptos clave](#1-introducci%C3%B3n-y-conceptos-clave)
-2.  [Acceso al sistema](#2-acceso-al-sistema)
-3.  [Navegación general](#3-navegaci%C3%B3n-general)
-4.  [Dashboard — Panel principal](#4-dashboard--panel-principal)
-5.  [Proyectos](#5-proyectos)
-6.  [Kanban AACC](#6-kanban-aacc)
-7.  [Tareas](#7-tareas)
-8.  [Sesiones cognitivas y Flujo Profundo](#8-sesiones-cognitivas-y-flujo-profundo)
-9.  [Sprint cognitivo](#9-sprint-cognitivo)
+01.  [Introducción y conceptos clave](#1-introducci%C3%B3n-y-conceptos-clave)
+02.  [Acceso al sistema](#2-acceso-al-sistema)
+03.  [Navegación general](#3-navegaci%C3%B3n-general)
+04.  [Dashboard — Panel principal](#4-dashboard--panel-principal)
+05.  [Proyectos](#5-proyectos)
+06.  [Kanban AACC](#6-kanban-aacc)
+07.  [Tareas](#7-tareas)
+08.  [Sesiones cognitivas y Flujo Profundo](#8-sesiones-cognitivas-y-flujo-profundo)
+09.  [Sprint cognitivo](#9-sprint-cognitivo)
 10.  [Bienestar cognitivo](#10-bienestar-cognitivo)
 11.  [Base de conocimiento](#11-base-de-conocimiento)
 12.  [Perfil de usuario](#12-perfil-de-usuario)
@@ -82,26 +82,26 @@ ACPM define roles especializados que reflejan las dinámicas de un equipo AACC:
 
 ### 2.1 Iniciar sesión
 
-Al acceder a la aplicación (`http://localhost:3000`) verás la pantalla de login.
+Al acceder a la aplicación ( `http://localhost:3000` ) verás la pantalla de login.
 
 **Pasos:**
 
-1.  Introduce tu **email** y **contraseña** en el formulario.
-2.  Pulsa **"Acceder al sistema"**.
-3.  Si las credenciales son correctas, serás redirigido al **Dashboard**.
+01.  Introduce tu **email** y **contraseña** en el formulario.
+02.  Pulsa **"Acceder al sistema"**.
+03.  Si las credenciales son correctas, serás redirigido al **Dashboard**.
 
-En la parte inferior de la pantalla de login se muestran los **usuarios demo** disponibles. Puedes hacer clic en cualquiera de ellos para rellenar automáticamente el formulario con sus credenciales (contraseña: `acpm2026`).
+En la parte inferior de la pantalla de login se muestran los **usuarios demo** disponibles. Puedes hacer clic en cualquiera de ellos para rellenar automáticamente el formulario con sus credenciales (contraseña: `acpm2026` ).
 
 ### 2.2 Recuperar contraseña
 
 Si olvidaste tu contraseña:
 
-1.  En la pantalla de login, pulsa **"¿Olvidaste tu contraseña?"**.
-2.  Introduce tu **email** en el formulario que aparece.
-3.  Pulsa **"Enviar instrucciones"**.
-4.  Recibirás un enlace por correo electrónico para restablecer tu contraseña.
-5.  El enlace te llevará al formulario de **"Restablecer contraseña"**, donde podrás introducir y confirmar tu nueva contraseña (mínimo 6 caracteres).
-6.  Una vez restablecida, volverás automáticamente al login con un mensaje de confirmación.
+01.  En la pantalla de login, pulsa **"¿Olvidaste tu contraseña?"**.
+02.  Introduce tu **email** en el formulario que aparece.
+03.  Pulsa **"Enviar instrucciones"**.
+04.  Recibirás un enlace por correo electrónico para restablecer tu contraseña.
+05.  El enlace te llevará al formulario de **"Restablecer contraseña"**, donde podrás introducir y confirmar tu nueva contraseña (mínimo 6 caracteres).
+06.  Una vez restablecida, volverás automáticamente al login con un mensaje de confirmación.
 
 > **Nota:** Por seguridad, el sistema siempre muestra el mismo mensaje de confirmación independientemente de si el email existe o no en la base de datos.
 
@@ -165,11 +165,11 @@ En la esquina superior derecha hay dos botones:
 
 Abre un modal para **vaciar tu mente rápidamente**. Es una herramienta diseñada para perfiles AACC que a menudo tienen múltiples ideas simultáneas:
 
-1.  Pulsa **"🧠 Brain Dump"**.
-2.  Selecciona el **proyecto** donde quieres añadir las tareas.
-3.  Escribe tus ideas, **una por línea**. Cada línea se convertirá en una tarea independiente.
-4.  El contador inferior te indica cuántas tareas se crearán.
-5.  Pulsa **"Crear X tarea(s)"** para añadirlas al backlog del proyecto seleccionado.
+01.  Pulsa **"🧠 Brain Dump"**.
+02.  Selecciona el **proyecto** donde quieres añadir las tareas.
+03.  Escribe tus ideas, **una por línea**. Cada línea se convertirá en una tarea independiente.
+04.  El contador inferior te indica cuántas tareas se crearán.
+05.  Pulsa **"Crear X tarea(s)"** para añadirlas al backlog del proyecto seleccionado.
 
 Todas las tareas creadas mediante Brain Dump se añaden con estado **"Backlog"**, prioridad **"Media"**, tipo cognitivo **"Rutina"** y PCC **3**.
 
@@ -253,8 +253,8 @@ Cada proyecto se muestra como una tarjeta con:
 
 ### 5.2 Crear un proyecto
 
-1.  Pulsa **"+ Nuevo Proyecto"** en la esquina superior derecha.
-2.  Rellena el formulario:
+01.  Pulsa **"+ Nuevo Proyecto"** en la esquina superior derecha.
+02.  Rellena el formulario:
 
 | Campo | Obligatorio | Descripción |
 | --- | --- | --- |
@@ -265,7 +265,7 @@ Cada proyecto se muestra como una tarjeta con:
 | Complejidad cognitiva | ✅ | Slider de 1 a 10. Indica la exigencia cognitiva global del proyecto. |
 | Etiquetas | — | Palabras clave separadas por comas (ej: "AI, TypeScript, PostgreSQL"). |
 
-1.  Pulsa **"Crear Proyecto"**. El proyecto se crea en estado **"Activo"** y tú eres añadido como **Architect-Lead**.
+01.  Pulsa **"Crear Proyecto"**. El proyecto se crea en estado **"Activo"** y tú eres añadido como **Architect-Lead**.
 
 ### 5.3 Detalle de un proyecto
 
@@ -337,19 +337,19 @@ Cada tarjeta del Kanban muestra:
 *   **Título de la tarea** (hasta 3 líneas).
 *   **Etiquetas** (hasta 2 visibles).
 *   **Fila inferior:**
-    *   Avatar del asignado (si hay).
-    *   Contador de subtareas (X/Y completadas).
-    *   Badge de PCC con código de color.
-    *   **Menú de mover (⋮)** — Aparece al pasar el cursor. Al pulsar, muestra un desplegable con todas las columnas disponibles para mover la tarea.
+    -   Avatar del asignado (si hay).
+    -   Contador de subtareas (X/Y completadas).
+    -   Badge de PCC con código de color.
+    -   **Menú de mover (⋮)** — Aparece al pasar el cursor. Al pulsar, muestra un desplegable con todas las columnas disponibles para mover la tarea.
 
 **Borde lateral izquierdo:** Cada tarjeta tiene un borde de 3px con el color del tipo cognitivo de la tarea, para identificar rápidamente la naturaleza del trabajo.
 
 ### 6.4 Mover tareas entre columnas
 
-1.  Pasa el cursor sobre una tarjeta.
-2.  Pulsa el icono **⋮** (tres puntos verticales) que aparece.
-3.  Se despliega un menú con todas las columnas (excepto la actual).
-4.  Selecciona la columna destino para mover la tarea inmediatamente.
+01.  Pasa el cursor sobre una tarjeta.
+02.  Pulsa el icono **⋮** (tres puntos verticales) que aparece.
+03.  Se despliega un menú con todas las columnas (excepto la actual).
+04.  Selecciona la columna destino para mover la tarea inmediatamente.
 
 **Importante:** Si la tarea tiene una Definition of Done, no podrá moverse a "Completada" hasta que todos los criterios estén marcados como cumplidos.
 
@@ -395,10 +395,10 @@ Al hacer clic en cualquier tarea (desde el Kanban, la lista de proyectos, o "Mis
 *   **Contexto estratégico** — Si existe, se muestra en un recuadro destacado con icono 🎯 y etiqueta "CONTEXTO ESTRATÉGICO".
 *   **Descripción** — Texto con soporte Markdown.
 *   **Definition of Done** — Lista interactiva de criterios:
-    *   Cada criterio tiene un checkbox que puedes marcar/desmarcar.
-    *   El contador muestra "X/Y" criterios completados.
-    *   Los criterios cumplidos aparecen tachados y atenuados.
-    *   Si no están todos completos, el botón "Marcar Done" permanece deshabilitado.
+    -   Cada criterio tiene un checkbox que puedes marcar/desmarcar.
+    -   El contador muestra "X/Y" criterios completados.
+    -   Los criterios cumplidos aparecen tachados y atenuados.
+    -   Si no están todos completos, el botón "Marcar Done" permanece deshabilitado.
 *   **Sesiones de trabajo** — Historial de todas las sesiones cognitivas realizadas sobre esta tarea (ver sección 8).
 *   **Comentarios** — Hilo de conversación asociado a la tarea.
 
@@ -407,22 +407,22 @@ Al hacer clic en cualquier tarea (desde el Kanban, la lista de proyectos, o "Mis
 *   **"▶ Iniciar Sesión de Flujo"** — Botón para comenzar una sesión cognitiva en esta tarea.
 *   **"✓ Marcar Done"** — Completa la tarea. Solo disponible cuando todos los criterios de DoD están marcados (o si no hay DoD definido).
 *   **Metadatos editables:**
-    *   Estado — Desplegable para cambiar entre: Backlog, Por Hacer, En Progreso, En Revisión, Bloqueada, Completada, Cancelada.
-    *   Prioridad — Desplegable.
-    *   PCC — Desplegable con valores Fibonacci.
+    -   Estado — Desplegable para cambiar entre: Backlog, Por Hacer, En Progreso, En Revisión, Bloqueada, Completada, Cancelada.
+    -   Prioridad — Desplegable.
+    -   PCC — Desplegable con valores Fibonacci.
 *   **Información de solo lectura:**
-    *   Asignado (avatar + nombre).
-    *   Fecha de creación.
-    *   Última actualización.
+    -   Asignado (avatar + nombre).
+    -   Fecha de creación.
+    -   Última actualización.
 *   **Etiquetas** de la tarea.
 
 ### 7.3 Comentarios
 
 En la parte inferior del detalle de una tarea puedes añadir comentarios:
 
-1.  Escribe tu comentario en el campo de texto. Se soporta **Markdown**.
-2.  **(Opcional)** Marca la casilla **"💭 Pensamiento en voz alta"** si tu comentario es una reflexión interna, no una comunicación directa. Estos comentarios se muestran con un estilo visual diferente (borde ámbar) para distinguirlos claramente.
-3.  Pulsa **"Comentar"**.
+01.  Escribe tu comentario en el campo de texto. Se soporta **Markdown**.
+02.  **(Opcional)** Marca la casilla **"💭 Pensamiento en voz alta"** si tu comentario es una reflexión interna, no una comunicación directa. Estos comentarios se muestran con un estilo visual diferente (borde ámbar) para distinguirlos claramente.
+03.  Pulsa **"Comentar"**.
 
 El modo **"Pensamiento en voz alta"** es una funcionalidad AACC que permite a los miembros del equipo externalizar su proceso de razonamiento sin que se confunda con comunicación formal. Esto es especialmente útil para perfiles con procesamiento multidimensional que necesitan "pensar hacia fuera".
 
@@ -434,11 +434,11 @@ El sistema de sesiones cognitivas es el núcleo de la funcionalidad AACC de la a
 
 ### 8.1 Iniciar una sesión
 
-1.  Desde el **detalle de una tarea**, pulsa **"▶ Iniciar Sesión de Flujo"**.
-2.  Se abre un diálog donde debes indicar:
-    *   **Nivel de energía** (1 a 5 puntos) — Tu estado actual de energía. Se representa con 5 puntos; selecciona los que correspondan.
-    *   **Activar Flujo Profundo** — Casilla opcional. Si la activas, el equipo verá una insignia "🛡 En Flujo Profundo" en tu tarjeta del Kanban, indicando que no debes ser interrumpido.
-3.  Pulsa **"Iniciar Sesión"**.
+01.  Desde el **detalle de una tarea**, pulsa **"▶ Iniciar Sesión de Flujo"**.
+02.  Se abre un diálog donde debes indicar:
+    -   **Nivel de energía** (1 a 5 puntos) — Tu estado actual de energía. Se representa con 5 puntos; selecciona los que correspondan.
+    -   **Activar Flujo Profundo** — Casilla opcional. Si la activas, el equipo verá una insignia "🛡 En Flujo Profundo" en tu tarjeta del Kanban, indicando que no debes ser interrumpido.
+03.  Pulsa **"Iniciar Sesión"**.
 
 ### 8.2 Durante la sesión
 
@@ -450,11 +450,11 @@ Mientras una sesión está activa:
 
 ### 8.3 Finalizar una sesión
 
-1.  Vuelve al detalle de la tarea (el botón ahora dirá **"🛡 Sesión Activa"**).
-2.  Pulsa el botón para finalizar la sesión.
-3.  Puedes opcionalmente indicar:
-    *   **Calidad percibida** (1 a 5) — Tu valoración subjetiva de la calidad del trabajo.
-    *   **Notas** — Cualquier observación sobre la sesión.
+01.  Vuelve al detalle de la tarea (el botón ahora dirá **"🛡 Sesión Activa"**).
+02.  Pulsa el botón para finalizar la sesión.
+03.  Puedes opcionalmente indicar:
+    -   **Calidad percibida** (1 a 5) — Tu valoración subjetiva de la calidad del trabajo.
+    -   **Notas** — Cualquier observación sobre la sesión.
 
 ### 8.4 Historial de sesiones
 
@@ -474,9 +474,9 @@ El Planificador de Sprint Cognitivo permite organizar el trabajo respetando la c
 
 ### 9.1 Seleccionar proyecto y sprint
 
-1.  En la esquina superior derecha, selecciona el **proyecto** con el desplegable.
-2.  Debajo aparecen los **sprints existentes** como botones. El sprint activo se resalta.
-3.  Puedes crear un nuevo sprint con el botón **"+ Nuevo Sprint"**.
+01.  En la esquina superior derecha, selecciona el **proyecto** con el desplegable.
+02.  Debajo aparecen los **sprints existentes** como botones. El sprint activo se resalta.
+03.  Puedes crear un nuevo sprint con el botón **"+ Nuevo Sprint"**.
 
 ### 9.2 Información del sprint
 
@@ -611,8 +611,8 @@ La vista se divide en dos paneles:
 
 ### 11.3 Crear un nodo de conocimiento
 
-1.  Pulsa **"+ Nuevo Nodo"**.
-2.  Rellena el formulario:
+01.  Pulsa **"+ Nuevo Nodo"**.
+02.  Rellena el formulario:
 
 | Campo | Obligatorio | Descripción |
 | --- | --- | --- |
@@ -621,7 +621,7 @@ La vista se divide en dos paneles:
 | **Contenido** | ✅ | Contexto, decisión tomada, alternativas consideradas... |
 | **Etiquetas** | — | Separadas por comas (ej: "architecture, decision, AI"). |
 
-1.  Pulsa **"Guardar"** para crear el nodo.
+01.  Pulsa **"Guardar"** para crear el nodo.
 
 ---
 
@@ -648,10 +648,10 @@ Pulsa **"Guardar Cambios"** para aplicar los cambios. Verás un mensaje de confi
 
 En la segunda tarjeta de la página de perfil puedes cambiar tu contraseña:
 
-1.  Introduce tu **contraseña actual**.
-2.  Introduce la **nueva contraseña** (mínimo 6 caracteres).
-3.  **Confirma** la nueva contraseña.
-4.  Pulsa **"Cambiar Contraseña"**.
+01.  Introduce tu **contraseña actual**.
+02.  Introduce la **nueva contraseña** (mínimo 6 caracteres).
+03.  **Confirma** la nueva contraseña.
+04.  Pulsa **"Cambiar Contraseña"**.
 
 Si las contraseñas no coinciden o la contraseña actual es incorrecta, se mostrará un mensaje de error en rojo.
 
@@ -677,9 +677,9 @@ La tabla muestra todos los usuarios registrados con las siguientes columnas:
 
 ### 13.2 Cambiar el rol de un usuario
 
-1.  En la columna **"Rol"**, haz clic en el rol actual del usuario.
-2.  Se despliega un selector con todos los roles disponibles.
-3.  **Selecciona el nuevo rol**. El cambio se aplica inmediatamente.
+01.  En la columna **"Rol"**, haz clic en el rol actual del usuario.
+02.  Se despliega un selector con todos los roles disponibles.
+03.  **Selecciona el nuevo rol**. El cambio se aplica inmediatamente.
 
 Los roles disponibles son: Admin, Architect-Lead, Deep Contributor, Connector, Flow Guardian, Product Visionary, DevOps Integrator, Quality Auditor, Stakeholder.
 
@@ -694,8 +694,8 @@ En la columna **"Acciones"** de cada usuario (excepto tú mismo):
 
 ### 13.4 Crear un nuevo usuario
 
-1.  Pulsa **"+ Nuevo Usuario"** en la esquina superior derecha.
-2.  Rellena el formulario:
+01.  Pulsa **"+ Nuevo Usuario"** en la esquina superior derecha.
+02.  Rellena el formulario:
 
 | Campo | Obligatorio | Descripción |
 | --- | --- | --- |
@@ -704,7 +704,7 @@ En la columna **"Acciones"** de cada usuario (excepto tú mismo):
 | **Contraseña** | ✅ | Contraseña inicial (mín. 6 caracteres). |
 | **Rol** | ✅ | Rol asignado desde el inicio. Por defecto: Deep Contributor. |
 
-1.  Pulsa **"Crear Usuario"**. Si el email ya existe, se mostrará un error.
+01.  Pulsa **"Crear Usuario"**. Si el email ya existe, se mostrará un error.
 
 ---
 

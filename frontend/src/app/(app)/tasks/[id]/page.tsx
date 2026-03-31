@@ -64,6 +64,16 @@ export default function TaskDetailPage() {
     }
   }
 
+  async function deleteTask() {
+    if (!task || !window.confirm('¿Está seguro que desea eliminar esta tarea? No se puede deshacer.')) return;
+    try {
+      await tasks.delete(task.id);
+      router.push('/tasks');
+    } catch (err) {
+      alert('Error al eliminar la tarea');
+    }
+  }
+
   if (loading) return <div className="flex items-center justify-center h-full text-text-3">Cargando tarea...</div>;
   if (!task) return <div className="flex items-center justify-center h-full text-text-3">Tarea no encontrada</div>;
 
@@ -111,50 +121,98 @@ export default function TaskDetailPage() {
             </div>
 
             {/* Strategic context */}
-            {task.strategic_context && (
-              <div className="bg-teal-dark/6 border border-teal-dark/20 border-l-2 border-l-teal-dark rounded-xl p-4 mb-5">
-                <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider mb-2">Contexto Estratégico</div>
-                <p className="text-xs text-text-1 leading-relaxed">🎯 {task.strategic_context}</p>
-              </div>
-            )}
+            <div className="bg-teal-dark/6 border border-teal-dark/20 border-l-2 border-l-teal-dark rounded-xl p-4 mb-5">
+              <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider mb-2">Contexto Estratégico</div>
+              <textarea
+                className="textarea bg-transparent border-0 p-0 w-full text-xs text-text-1 leading-relaxed resize-none"
+                rows={2}
+                value={task.strategic_context || ''}
+                onChange={e => updateField('strategic_context', e.target.value || null)}
+                placeholder="Añade contexto estratégico... (click para editar)"
+              />
+            </div>
 
             {/* Description */}
-            {task.description && (
-              <>
-                <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider mb-2">Descripción</div>
-                <div className="text-sm text-text-1 leading-relaxed mb-5 bg-bg-2 border border-border rounded-xl p-4">
-                  {task.description}
-                </div>
-              </>
-            )}
+            <>
+              <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider mb-2">Descripción</div>
+              <div className="text-sm text-text-1 leading-relaxed mb-5 bg-bg-2 border border-border rounded-xl p-4 focus-within:border-border-hi transition-colors">
+                <textarea
+                  className="textarea bg-transparent border-0 p-0 w-full resize-none"
+                  rows={4}
+                  value={task.description || ''}
+                  onChange={e => updateField('description', e.target.value || null)}
+                  placeholder="Añade una descripción... (Markdown soportado)"
+                />
+              </div>
+            </>
 
             {/* Definition of Done */}
-            {task.definition_of_done?.length > 0 && (
-              <div className="mb-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider">Definition of Done</div>
-                  <span className="text-xs font-mono text-text-2">{dodCompleted}/{dodTotal}</span>
-                </div>
-                <div className="bg-bg-2 border border-border rounded-xl overflow-hidden">
-                  {task.definition_of_done.map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-3 transition-colors">
-                      <button
-                        onClick={() => toggleDoD(i)}
-                        className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-all ${
-                          item.done ? 'bg-teal-dark border-teal-dark' : 'border-border-hi hover:border-teal-dark'
-                        }`}
-                      >
-                        {item.done && <span className="text-white text-[8px]">✓</span>}
-                      </button>
-                      <span className={`text-xs flex-1 ${item.done ? 'line-through text-text-3' : 'text-text-1'}`}>{item.text}</span>
-                    </div>
-                  ))}
-                </div>
-                {dodTotal > 0 && !canMarkDone && task.status !== 'done' && (
-                  <p className="text-[10px] text-amber mt-2">⚠️ Completa todos los criterios de aceptación para marcar como done</p>
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider">Definition of Done</div>
+                <span className="text-xs font-mono text-text-2">{dodCompleted}/{dodTotal}</span>
+              </div>
+              <div className="bg-bg-2 border border-border rounded-xl overflow-hidden">
+                {task.definition_of_done && task.definition_of_done.length > 0 ? (
+                  <>
+                    {task.definition_of_done.map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-3 transition-colors group">
+                        <button
+                          onClick={() => toggleDoD(i)}
+                          className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-all ${
+                            item.done ? 'bg-teal-dark border-teal-dark' : 'border-border-hi hover:border-teal-dark'
+                          }`}
+                          title="Toggle done"
+                        >
+                          {item.done && <span className="text-white text-[8px]">✓</span>}
+                        </button>
+                        <input
+                          type="text"
+                          className="input bg-transparent border-0 p-0 text-xs flex-1 focus:ring-0 focus:bg-bg-3"
+                          value={item.text}
+                          onChange={e => {
+                            const newDoD = task.definition_of_done.map((d, idx) =>
+                              idx === i ? { ...d, text: e.target.value } : d
+                            );
+                            updateField('definition_of_done', newDoD);
+                          }}
+                          placeholder="Criterio de aceptación..."
+                        />
+                        <button
+                          onClick={() => {
+                            const newDoD = task.definition_of_done.filter((_, idx) => idx !== i);
+                            updateField('definition_of_done', newDoD);
+                          }}
+                          className="text-xs px-2 py-1 rounded text-red hover:bg-red/10 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                          title="Eliminar"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        const newDoD = [...(task.definition_of_done || []), { text: '', done: false }];
+                        updateField('definition_of_done', newDoD);
+                      }}
+                      className="w-full text-xs px-4 py-2 text-text-2 hover:bg-bg-3 transition-colors text-left"
+                    >
+                      + Añadir criterio
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => updateField('definition_of_done', [{ text: '', done: false }])}
+                    className="w-full text-xs px-4 py-3 text-text-3 hover:bg-bg-3 transition-colors"
+                  >
+                    + Añadir Definition of Done
+                  </button>
                 )}
               </div>
-            )}
+              {task.definition_of_done && dodTotal > 0 && !canMarkDone && task.status !== 'done' && (
+                <p className="text-[10px] text-amber mt-2">⚠️ Completa todos los criterios de aceptación para marcar como done</p>
+              )}
+            </div>
 
             {/* Sessions */}
             {task.sessions && task.sessions.length > 0 && (
@@ -260,45 +318,76 @@ export default function TaskDetailPage() {
               </button>
             ) : null}
 
+            <button
+              className="btn btn-ghost btn-error w-full justify-center text-xs opacity-70 hover:opacity-100"
+              onClick={deleteTask}
+            >
+              🗑 Eliminar Tarea
+            </button>
+
             {/* Metadata */}
-            <div className="bg-bg-2 border border-border rounded-xl p-3">
-              <div className="space-y-2">
-                {[
-                  ['Estado', <select key="status" className="select text-xs p-1" value={task.status} onChange={e => updateField('status', e.target.value)}>
-                    {(['backlog','todo','in_progress','review','blocked','done'] as const).map(s => <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>)}
-                  </select>],
-                  ['Prioridad', <select key="priority" className="select text-xs p-1" value={task.priority} onChange={e => updateField('priority', e.target.value)}>
-                    {(['critical','high','medium','low','someday'] as const).map(p => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
-                  </select>],
-                  ['PCC', <select key="pcc" className="select text-xs p-1 font-mono" value={task.cognitive_points} onChange={e => updateField('cognitive_points', +e.target.value)}>
-                    {PCC_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
-                  </select>],
-                  ['Asignado', task.assignee_name ? (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-4 h-4 rounded-full bg-purple/20 flex items-center justify-center text-[8px] text-purple font-bold">{getInitials(task.assignee_name)}</div>
-                      <span className="text-xs text-text-1">{task.assignee_name}</span>
-                    </div>
-                  ) : <span className="text-xs text-text-3">Sin asignar</span>],
-                  ['Creado', <span key="c" className="text-xs text-text-2">{formatDateTime(task.created_at)}</span>],
-                  ['Actualizado', <span key="u" className="text-xs text-text-2">{formatDateTime(task.updated_at)}</span>],
-                ].map(([label, value], i) => (
-                  <div key={i} className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-text-3 flex-shrink-0">{label as string}</span>
-                    <div className="flex-1 min-w-0 flex justify-end">{value as React.ReactNode}</div>
-                  </div>
-                ))}
+            <div className="bg-bg-2 border border-border rounded-xl p-3 space-y-3">
+              <div className="text-[10px] font-semibold text-text-3 uppercase tracking-wider mb-2">Configuración</div>
+              
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Estado</label>
+                <select className="select text-xs w-full" value={task.status} onChange={e => updateField('status', e.target.value)}>
+                  {(['backlog','todo','in_progress','review','blocked','done'] as const).map(s => <option key={s} value={s}>{TASK_STATUS_LABELS[s]}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Tipo de Tarea</label>
+                <select className="select text-xs w-full" value={task.task_type} onChange={e => updateField('task_type', e.target.value)}>
+                  {(['implementation','research','spike','review','experiment','documentation','bug','refactor'] as const).map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Tipo Cognitivo</label>
+                <select className="select text-xs w-full" value={task.cognitive_type} onChange={e => updateField('cognitive_type', e.target.value)}>
+                  {(['deep_focus','creative','routine','collaborative','exploratory'] as const).map(c => <option key={c} value={c}>{COGNITIVE_TYPE_LABELS[c]}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Prioridad</label>
+                <select className="select text-xs w-full" value={task.priority} onChange={e => updateField('priority', e.target.value)}>
+                  {(['critical','high','medium','low','someday'] as const).map(p => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">PCC</label>
+                <select className="select text-xs w-full font-mono" value={task.cognitive_points} onChange={e => updateField('cognitive_points', +e.target.value)}>
+                  {PCC_VALUES.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Horas Estimadas</label>
+                <input type="number" className="input text-xs w-full" min="0" step="0.5" value={task.estimated_hours || ''} 
+                  onChange={e => updateField('estimated_hours', e.target.value ? +e.target.value : null)} placeholder="Ej: 2.5" />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Razón Bloqueada</label>
+                <input type="text" className="input text-xs w-full" value={task.blocked_reason || ''} 
+                  onChange={e => updateField('blocked_reason', e.target.value || null)} placeholder="¿Por qué está bloqueada?" />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-text-3 block mb-1">Etiquetas</label>
+                <input type="text" className="input text-xs w-full" value={task.tags?.join(', ') || ''} 
+                  onChange={e => updateField('tags', e.target.value ? e.target.value.split(',').map(t => t.trim()) : [])} 
+                  placeholder="Separadas por comas" />
+              </div>
+
+              <div className="pt-2 border-t border-border text-[10px] text-text-3 space-y-1">
+                <div className="flex justify-between"><span>Creado:</span><span>{formatDateTime(task.created_at)}</span></div>
+                <div className="flex justify-between"><span>Actualizado:</span><span>{formatDateTime(task.updated_at)}</span></div>
               </div>
             </div>
-
-            {/* Tags */}
-            {task.tags?.length > 0 && (
-              <div className="bg-bg-2 border border-border rounded-xl p-3">
-                <div className="text-[10px] text-text-3 mb-2">Etiquetas</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {task.tags.map(t => <span key={t} className="text-[9px] font-mono bg-bg-4 text-text-2 px-1.5 py-0.5 rounded">{t}</span>)}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
