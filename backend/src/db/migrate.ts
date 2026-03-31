@@ -9,6 +9,7 @@ async function migrate() {
     '003_add_comment_edits.sql',
     '004_add_user_preferences.sql',
     '005_update_theme_preference_check.sql',
+    '006_add_font_size.sql',
   ];
 
   console.log('Running database migrations...');

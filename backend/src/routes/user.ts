@@ -9,6 +9,7 @@ const PreferencesSchema = z.object({
   text_to_speech_enabled: z.boolean().optional(),
   tts_voice: z.string().optional(),
   tts_rate: z.number().min(0.5).max(2.0).optional(),
+  font_size_preference: z.enum(['small', 'normal', 'large', 'extra_large']).optional(),
 });
 
 export async function currentUserRoutes(fastify: FastifyInstance) {
@@ -21,13 +22,15 @@ export async function currentUserRoutes(fastify: FastifyInstance) {
       text_to_speech_enabled: boolean;
       tts_voice: string;
       tts_rate: number;
+      font_size_preference: string;
     }>(
       `SELECT 
         id, email, full_name, role, 
         theme_preference, 
         text_to_speech_enabled, 
         tts_voice, 
-        tts_rate 
+        tts_rate,
+        font_size_preference 
       FROM users WHERE id = $1`,
       [userId]
     );
@@ -44,6 +47,7 @@ export async function currentUserRoutes(fastify: FastifyInstance) {
       text_to_speech_enabled: user.text_to_speech_enabled || false,
       tts_voice: user.tts_voice || 'default',
       tts_rate: user.tts_rate || 1.0,
+      font_size_preference: user.font_size_preference || 'normal',
     });
   });
 
@@ -80,6 +84,12 @@ export async function currentUserRoutes(fastify: FastifyInstance) {
       paramIndex++;
     }
 
+    if (body.font_size_preference !== undefined) {
+      updates.push(`font_size_preference = $${paramIndex}`);
+      values.push(body.font_size_preference);
+      paramIndex++;
+    }
+
     if (updates.length === 0) {
       return reply.send({ message: 'No preferences to update' });
     }
@@ -95,13 +105,15 @@ export async function currentUserRoutes(fastify: FastifyInstance) {
       text_to_speech_enabled: boolean;
       tts_voice: string;
       tts_rate: number;
+      font_size_preference: string;
     }>(
       `SELECT 
         id, email, full_name, role,
         theme_preference, 
         text_to_speech_enabled, 
         tts_voice, 
-        tts_rate 
+        tts_rate,
+        font_size_preference 
       FROM users WHERE id = $1`,
       [userId]
     );
@@ -113,6 +125,7 @@ export async function currentUserRoutes(fastify: FastifyInstance) {
         text_to_speech_enabled: user?.text_to_speech_enabled || false,
         tts_voice: user?.tts_voice || 'default',
         tts_rate: user?.tts_rate || 1.0,
+        font_size_preference: user?.font_size_preference || 'normal',
       },
     });
   });
@@ -126,13 +139,15 @@ export async function currentUserRoutes(fastify: FastifyInstance) {
       text_to_speech_enabled: boolean;
       tts_voice: string;
       tts_rate: number;
+      font_size_preference: string;
     }>(
       `SELECT 
         id, email, full_name, role, is_active, created_at,
         theme_preference, 
         text_to_speech_enabled, 
         tts_voice, 
-        tts_rate 
+        tts_rate,
+        font_size_preference 
       FROM users WHERE id = $1`,
       [userId]
     );

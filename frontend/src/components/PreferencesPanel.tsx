@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/useTheme';
+import { useFontSize } from '@/lib/useFontSize';
 import { useTextToSpeech } from '@/lib/useTextToSpeech';
 import { userPreferences, UserPreferences } from '@/lib/api';
 
 export function PreferencesPanel() {
   const { theme, setTheme, isLoading: themeLoading } = useTheme();
+  const { fontSize, setFontSize, isLoading: fontSizeLoading } = useFontSize();
   const { rate, setRate, isSupported: ttsSupported } = useTextToSpeech();
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,17 @@ export function PreferencesPanel() {
     }
   };
 
+  const handleFontSizeChange = async (newSize: 'small' | 'normal' | 'large' | 'extra_large') => {
+    try {
+      setFontSize(newSize);
+      await userPreferences.update({ font_size_preference: newSize });
+      setSavedMessage('✓ Tamaño de fuente actualizado');
+      setTimeout(() => setSavedMessage(''), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error updating font size');
+    }
+  };
+
   const handleTTSToggle = async (enabled: boolean) => {
     try {
       await userPreferences.update({ text_to_speech_enabled: enabled });
@@ -63,12 +76,12 @@ export function PreferencesPanel() {
     }
   };
 
-  if (loading || themeLoading) {
+  if (loading || themeLoading || fontSizeLoading) {
     return <div className="p-4 text-center text-text-2">Cargando preferencias...</div>;
   }
 
   return (
-    <div className="space-y-8 p-6 bg-bg-1 rounded-xl">
+    <div className="max-h-[75vh] overflow-y-auto space-y-8 p-6 bg-bg-1 rounded-xl">
       {error && (
         <div className="p-3 rounded-lg text-sm" style={{
           backgroundColor: 'color-mix(in srgb, var(--accent-red) 15%, transparent)',
@@ -214,6 +227,116 @@ export function PreferencesPanel() {
                 <div className="font-semibold text-text-0 text-sm">Tema Oscuro</div>
                 <div className="text-xs text-text-2">Original con adaptado para baja luminosidad</div>
               </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* FONT SIZE */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-text-0 flex items-center gap-2">
+          📝 Tamaño de fuente
+        </h3>
+        <p className="text-xs text-text-2 mb-3">Ajusta el tamaño de letra para una mejor legibilidad</p>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Small Font */}
+          <button
+            onClick={() => handleFontSizeChange('small')}
+            className="p-3 rounded-lg border-2 transition-all text-left"
+            style={{
+              borderColor: fontSize === 'small' ? 'var(--accent-teal)' : 'var(--border-default)',
+              backgroundColor: fontSize === 'small' ? 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' : 'var(--bg-2)',
+            }}
+            onMouseEnter={(e) => {
+              if (fontSize !== 'small') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-hi)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (fontSize !== 'small') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-default)';
+              }
+            }}
+          >
+            <div className="text-center">
+              <div className="text-xs font-semibold text-text-0 mb-1">A</div>
+              <div className="text-xs text-text-2">Pequeño</div>
+            </div>
+          </button>
+
+          {/* Normal Font */}
+          <button
+            onClick={() => handleFontSizeChange('normal')}
+            className="p-3 rounded-lg border-2 transition-all text-left"
+            style={{
+              borderColor: fontSize === 'normal' ? 'var(--accent-teal)' : 'var(--border-default)',
+              backgroundColor: fontSize === 'normal' ? 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' : 'var(--bg-2)',
+            }}
+            onMouseEnter={(e) => {
+              if (fontSize !== 'normal') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-hi)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (fontSize !== 'normal') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-default)';
+              }
+            }}
+          >
+            <div className="text-center">
+              <div className="text-sm font-semibold text-text-0 mb-1">A</div>
+              <div className="text-xs text-text-2">Normal</div>
+            </div>
+          </button>
+
+          {/* Large Font */}
+          <button
+            onClick={() => handleFontSizeChange('large')}
+            className="p-3 rounded-lg border-2 transition-all text-left"
+            style={{
+              borderColor: fontSize === 'large' ? 'var(--accent-teal)' : 'var(--border-default)',
+              backgroundColor: fontSize === 'large' ? 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' : 'var(--bg-2)',
+            }}
+            onMouseEnter={(e) => {
+              if (fontSize !== 'large') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-hi)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (fontSize !== 'large') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-default)';
+              }
+            }}
+          >
+            <div className="text-center">
+              <div className="text-lg font-semibold text-text-0 mb-1">A</div>
+              <div className="text-xs text-text-2">Grande</div>
+            </div>
+          </button>
+
+          {/* Extra Large Font */}
+          <button
+            onClick={() => handleFontSizeChange('extra_large')}
+            className="p-3 rounded-lg border-2 transition-all text-left"
+            style={{
+              borderColor: fontSize === 'extra_large' ? 'var(--accent-teal)' : 'var(--border-default)',
+              backgroundColor: fontSize === 'extra_large' ? 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' : 'var(--bg-2)',
+            }}
+            onMouseEnter={(e) => {
+              if (fontSize !== 'extra_large') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-hi)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (fontSize !== 'extra_large') {
+                (e.target as HTMLElement).style.borderColor = 'var(--border-default)';
+              }
+            }}
+          >
+            <div className="text-center">
+              <div className="text-xl font-semibold text-text-0 mb-1">A</div>
+              <div className="text-xs text-text-2">Muy grande</div>
             </div>
           </button>
         </div>

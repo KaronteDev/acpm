@@ -345,14 +345,15 @@ export interface UserPreferences {
   text_to_speech_enabled: boolean;
   tts_voice: string;
   tts_rate: number;
+  font_size_preference: 'small' | 'normal' | 'large' | 'extra_large';
 }
 
 export const userPreferences = {
   get: () => 
     apiFetch<UserPreferences>('/api/user/preferences'),
   profile: () => 
-    apiFetch<User & { theme_preference: 'light' | 'high_contrast' | 'colorblind' | 'dark'; text_to_speech_enabled: boolean; tts_voice: string; tts_rate: number }>('/api/user/profile'),
-  update: (data: Partial<{ theme_preference: string; text_to_speech_enabled: boolean; tts_voice: string; tts_rate: number }>) =>
+    apiFetch<User & { theme_preference: 'light' | 'high_contrast' | 'colorblind' | 'dark'; text_to_speech_enabled: boolean; tts_voice: string; tts_rate: number; font_size_preference: 'small' | 'normal' | 'large' | 'extra_large' }>('/api/user/profile'),
+  update: (data: Partial<{ theme_preference: string; text_to_speech_enabled: boolean; tts_voice: string; tts_rate: number; font_size_preference: string }>) =>
     apiFetch<{ message: string; preferences: Partial<UserPreferences> }>('/api/user/preferences', { 
       method: 'PATCH', 
       body: JSON.stringify(data) 
