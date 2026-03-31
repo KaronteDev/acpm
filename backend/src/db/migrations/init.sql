@@ -210,6 +210,7 @@ CREATE TABLE tasks (
   dependencies       UUID[] DEFAULT '{}',
   tags               TEXT[] DEFAULT '{}',
   blocked_reason     TEXT,
+  display_order      INTEGER DEFAULT 0,
   created_by         UUID NOT NULL REFERENCES users(id),
   created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()

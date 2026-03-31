@@ -2,26 +2,39 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('acpm_token');
+  const token = localStorage.getItem('acpm_token');
+  if (!token) {
+    console.warn('⚠️ No token found in localStorage');
+  } else {
+    console.log('🔐 Token found:', token.substring(0, 20) + '...');
+  }
+  return token;
 }
 
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+  
+  console.log(`📡 Fetching ${options.method?.toUpperCase() || 'GET'} ${path}`, { hasAuth: !!token, headers });
+  
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
+    console.error(`🔴 API Error [${res.status} ${path}]:`, err);
     throw new Error(err.error || `HTTP ${res.status}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  console.log(`🟢 API Success [${path}]:`, data);
+  return data;
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -77,7 +90,7 @@ export const projects = {
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 export const tasks = {
   list: (params: { project_id?: string; sprint_id?: string; status?: string; assignee_id?: string; cognitive_type?: string }) => {
-    const qs = new URLSearchParams(Object.entries(params).filter(([,v]) => v !== undefined) as [string,string][]).toString();
+    const qs = new URLSearchParams(Object.entries(params).filter(([,v]) => v !== undefined && v !== 'null' && v !== null) as [string,string][]).toString();
     return apiFetch<{ tasks: Task[] }>(`/api/tasks?${qs}`);
   },
   get: (id: string) => apiFetch<{ task: Task }>(`/api/tasks/${id}`),
@@ -111,6 +124,8 @@ export const sprints = {
     apiFetch<{ sprint: Sprint }>('/api/sprints', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Sprint>) =>
     apiFetch<{ sprint: Sprint }>(`/api/sprints/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  reorder: (sprint_id: string, task_ids: string[]) =>
+    apiFetch<{ tasks: Task[] }>(`/api/sprints/${sprint_id}/reorder`, { method: 'POST', body: JSON.stringify({ task_ids }) }),
 };
 
 // ── Wellness ──────────────────────────────────────────────────────────────────
@@ -250,6 +265,7 @@ export interface Task {
   dependencies: string[];
   tags: string[];
   blocked_reason?: string;
+  display_order?: number;
   created_by: string;
   created_at: string;
   updated_at: string;

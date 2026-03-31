@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { sprints, tasks, projects } from '@/lib/api';
 import type { Sprint, Task, Project } from '@/lib/api';
 import { COGNITIVE_TYPE_COLORS, COGNITIVE_TYPE_LABELS, getPCCClass, getInitials } from '@/lib/utils';
 
 export default function SprintPage() {
+  const router = useRouter();
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [activeSprints, setActiveSprints] = useState<Sprint[]>([]);
@@ -16,6 +18,8 @@ export default function SprintPage() {
   const [newSprintData, setNewSprintData] = useState({ name: '', goal: '', start_date: '', end_date: '' });
   const [creatingSprint, setCreatingSprint] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [draggedTask, setDraggedTask] = useState<string | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     projects.list({ status: 'active' }).then(r => {
@@ -29,7 +33,7 @@ export default function SprintPage() {
     setLoading(true);
     Promise.all([
       sprints.list({ project_id: selectedProject }),
-      tasks.list({ project_id: selectedProject, sprint_id: 'null', status: 'backlog' }),
+      tasks.list({ project_id: selectedProject, sprint_id: undefined, status: 'backlog' }),
     ]).then(([sps, bl]) => {
       setActiveSprints(sps.sprints);
       setBacklog(bl.tasks);
@@ -46,9 +50,13 @@ export default function SprintPage() {
 
   async function addToSprint(task: Task) {
     if (!selectedSprint) return;
-    await tasks.update(task.id, { sprint_id: selectedSprint.id, status: 'todo' });
+    const nextOrder = sprintTasks.length > 0 
+      ? Math.max(...sprintTasks.map(t => t.display_order ?? 0)) + 1 
+      : 0;
+    
+    await tasks.update(task.id, { sprint_id: selectedSprint.id, status: 'todo', display_order: nextOrder });
     setBacklog(prev => prev.filter(t => t.id !== task.id));
-    setSprintTasks(prev => [...prev, { ...task, sprint_id: selectedSprint.id }]);
+    setSprintTasks(prev => [...prev, { ...task, sprint_id: selectedSprint.id, display_order: nextOrder }]);
   }
 
   async function removeFromSprint(task: Task) {
@@ -57,8 +65,62 @@ export default function SprintPage() {
     setBacklog(prev => [...prev, { ...task, sprint_id: undefined }]);
   }
 
+  function handleDragStart(taskId: string, e: React.DragEvent<HTMLDivElement>) {
+    setDraggedTask(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('taskId', taskId);
+  }
+
+  function handleDragOver(index: number, e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }
+
+  function handleDragLeave() {
+    setDragOverIndex(null);
+  }
+
+  async function handleDrop(index: number, e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData('taskId');
+    
+    if (!draggedId || !selectedSprint) return;
+
+    const draggedIdx = sprintTasks.findIndex(t => t.id === draggedId);
+    if (draggedIdx === -1 || draggedIdx === index) {
+      setDragOverIndex(null);
+      return;
+    }
+
+    // Update local state with new order
+    const newTasks = [...sprintTasks];
+    const [draggedItem] = newTasks.splice(draggedIdx, 1);
+    newTasks.splice(index, 0, draggedItem);
+
+    setSprintTasks(newTasks);
+    setDraggedTask(null);
+    setDragOverIndex(null);
+
+    // Persist the new order to backend
+    try {
+      const taskIds = newTasks.map(t => t.id);
+      await sprints.reorder(selectedSprint.id, taskIds);
+      console.log('✅ Tareas reordenadas exitosamente');
+    } catch (err) {
+      console.error('❌ Error reordenando tareas:', err);
+      // Revert on error
+      setSprintTasks([...sprintTasks]);
+    }
+  }
+
   async function createNewSprint() {
     setCreateError('');
+    
+    if (!selectedProject) {
+      setCreateError('Selecciona un proyecto primero');
+      return;
+    }
     
     if (!newSprintData.name.trim()) {
       setCreateError('El nombre del sprint es requerido');
@@ -80,20 +142,35 @@ export default function SprintPage() {
 
     try {
       setCreatingSprint(true);
-      const { sprint } = await sprints.create({
+      const payload = {
         project_id: selectedProject,
         name: newSprintData.name,
         goal: newSprintData.goal,
         start_date: newSprintData.start_date,
         end_date: newSprintData.end_date,
-      });
+      };
+      console.group('🚀 Sprint Creation');
+      console.log('📤 Payload:', payload);
+      const result = await sprints.create(payload);
+      console.log('📨 Raw response:', result);
+      const { sprint } = result;
+      console.log('🎯 Sprint object:', sprint);
+      console.log('📋 Current activeSprints before update:', activeSprints);
 
-      setActiveSprints(prev => [sprint, ...prev]);
+      setActiveSprints(prev => {
+        const updated = [sprint, ...prev];
+        console.log('📊 Updated activeSprints:', updated);
+        return updated;
+      });
       setSelectedSprint(sprint);
       setShowCreateModal(false);
       setNewSprintData({ name: '', goal: '', start_date: '', end_date: '' });
+      console.log('✅ Sprint creation completed successfully');
+      console.groupEnd();
     } catch (err) {
+      console.error('❌ Error creating sprint:', err);
       setCreateError(err instanceof Error ? err.message : 'Error al crear el sprint');
+      console.groupEnd();
     } finally {
       setCreatingSprint(false);
     }
@@ -191,7 +268,11 @@ export default function SprintPage() {
                 </div>
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   {backlog.map(task => (
-                    <div key={task.id} className="flex items-center gap-3 bg-bg-2 border border-border rounded-xl px-3 py-2.5 hover:border-border-hi transition-all group">
+                    <div 
+                      key={task.id} 
+                      onDoubleClick={() => router.push(`/tasks/${task.id}`)}
+                      className="flex items-center gap-3 bg-bg-2 border border-border rounded-xl px-3 py-2.5 hover:border-border-hi transition-all group cursor-pointer"
+                    >
                       <span className={`font-mono text-xs font-bold w-6 text-center ${getPCCClass(task.cognitive_points).split(' ')[0]}`}>{task.cognitive_points}</span>
                       <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ backgroundColor: COGNITIVE_TYPE_COLORS[task.cognitive_type] }} />
                       <span className="text-xs text-text-1 flex-1 line-clamp-1">{task.title}</span>
@@ -214,8 +295,23 @@ export default function SprintPage() {
                   <span className="text-[10px] text-text-3 font-mono">{sprintTasks.length} tareas</span>
                 </div>
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {sprintTasks.map(task => (
-                    <div key={task.id} className="flex items-center gap-3 bg-bg-2 border border-purple/20 rounded-xl px-3 py-2.5 hover:border-border-hi transition-all group" style={{ borderLeft: `3px solid ${COGNITIVE_TYPE_COLORS[task.cognitive_type]}` }}>
+                  {sprintTasks.map((task, idx) => (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(task.id, e)}
+                      onDragOver={(e) => handleDragOver(idx, e)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(idx, e)}
+                      onDoubleClick={() => router.push(`/tasks/${task.id}`)}
+                      className={`flex items-center gap-3 bg-bg-2 border border-purple/20 rounded-xl px-3 py-2.5 transition-all group cursor-grab active:cursor-grabbing ${
+                        draggedTask === task.id ? 'opacity-50' : ''
+                      } ${
+                        dragOverIndex === idx ? 'border-purple border-2 bg-purple/5' : 'hover:border-border-hi'
+                      }`}
+                      style={{ borderLeft: `3px solid ${COGNITIVE_TYPE_COLORS[task.cognitive_type]}` }}
+                    >
+                      <span className="text-text-3 cursor-grab active:cursor-grabbing">⋮</span>
                       <span className={`font-mono text-xs font-bold w-6 text-center ${getPCCClass(task.cognitive_points).split(' ')[0]}`}>{task.cognitive_points}</span>
                       <span className="text-xs text-text-1 flex-1 line-clamp-1">{task.title}</span>
                       {task.assignee_name && (

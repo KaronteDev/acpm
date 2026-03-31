@@ -38,16 +38,27 @@ export async function sprintRoutes(fastify: FastifyInstance) {
 
   // POST /api/sprints
   fastify.post('/', { preHandler: authenticate }, async (request, reply) => {
-    const body = SprintSchema.parse(request.body);
+    try {
+      console.log('📥 POST /api/sprints request body:', request.body);
+      const body = SprintSchema.parse(request.body);
+      console.log('✅ Validation passed:', body);
 
-    const [sprint] = await query(
-      `INSERT INTO sprints (project_id, name, goal, start_date, end_date, team_capacity)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [body.project_id, body.name, body.goal, body.start_date, body.end_date,
-       JSON.stringify(body.team_capacity || {})]
-    );
+      const result = await query(
+        `INSERT INTO sprints (project_id, name, goal, start_date, end_date, team_capacity)
+         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+        [body.project_id, body.name, body.goal, body.start_date, body.end_date,
+         JSON.stringify(body.team_capacity || {})]
+      );
+      
+      console.log('📊 Query result:', result);
+      const [sprint] = result;
+      console.log('✨ Sprint created:', sprint);
 
-    return reply.status(201).send({ sprint });
+      return reply.status(201).send({ sprint });
+    } catch (err) {
+      console.error('❌ Error in POST /api/sprints:', err);
+      throw err;
+    }
   });
 
   // PATCH /api/sprints/:id
@@ -73,6 +84,37 @@ export async function sprintRoutes(fastify: FastifyInstance) {
 
     const [sprint] = await query(`UPDATE sprints SET ${updates.join(',')} WHERE id = $${idx} RETURNING *`, values);
     return reply.send({ sprint });
+  });
+
+  // POST /api/sprints/:sprint_id/reorder — Reorder tasks in sprint
+  fastify.post('/:sprint_id/reorder', { preHandler: authenticate }, async (request, reply) => {
+    const { sprint_id } = request.params as { sprint_id: string };
+    const { task_ids } = request.body as { task_ids: string[] };
+
+    if (!Array.isArray(task_ids) || task_ids.length === 0) {
+      return reply.status(400).send({ error: 'task_ids debe ser un array no vacío' });
+    }
+
+    try {
+      // Update display_order for each task
+      for (let idx = 0; idx < task_ids.length; idx++) {
+        await query(
+          'UPDATE tasks SET display_order = $1 WHERE id = $2 AND sprint_id = $3',
+          [idx, task_ids[idx], sprint_id]
+        );
+      }
+
+      // Return updated tasks
+      const tasks = await query(
+        'SELECT * FROM tasks WHERE sprint_id = $1 ORDER BY display_order ASC',
+        [sprint_id]
+      );
+
+      return reply.send({ tasks });
+    } catch (err) {
+      console.error('❌ Error reordering tasks:', err);
+      return reply.status(500).send({ error: 'Error al reordenar tareas' });
+    }
   });
 }
 

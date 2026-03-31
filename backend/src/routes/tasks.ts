@@ -23,7 +23,7 @@ const CreateTaskSchema = z.object({
 
 const TaskQuerySchema = z.object({
   project_id: z.string().uuid().optional(),
-  sprint_id: z.string().uuid().optional(),
+  sprint_id: z.string().refine(s => s === 'null' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s), { message: 'sprint_id debe ser UUID o "null"' }).optional(),
   status: z.string().optional(),
   assignee_id: z.string().uuid().optional(),
   cognitive_type: z.string().optional(),
@@ -65,6 +65,8 @@ export async function taskRoutes(fastify: FastifyInstance) {
       WHERE ${conditions.join(' AND ')} AND t.parent_task_id IS NULL
       GROUP BY t.id, u.full_name, u.avatar_url, u.role, cu.full_name
       ORDER BY
+        CASE WHEN t.sprint_id IS NOT NULL THEN 0 ELSE 1 END,
+        CASE WHEN t.sprint_id IS NOT NULL THEN t.display_order ELSE NULL END,
         CASE t.priority WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END,
         t.updated_at DESC
       LIMIT $${idx++} OFFSET $${idx}
@@ -138,7 +140,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
 
     const allowed = ['title', 'description', 'task_type', 'cognitive_type', 'status', 'priority',
       'cognitive_points', 'estimated_hours', 'actual_hours', 'assignee_id', 'sprint_id',
-      'strategic_context', 'definition_of_done', 'tags', 'blocked_reason'];
+      'strategic_context', 'definition_of_done', 'tags', 'blocked_reason', 'display_order'];
 
     const updates: string[] = [];
     const values: unknown[] = [];
