@@ -92,6 +92,13 @@ export const tasks = {
     apiFetch<{ session: CognitiveSession }>(`/api/tasks/${taskId}/sessions/${sessionId}`, { method: 'PATCH', body: JSON.stringify(data) }),
   addComment: (taskId: string, data: { content: string; is_thinking?: boolean; parent_id?: string }) =>
     apiFetch<{ comment: Comment }>(`/api/tasks/${taskId}/comments`, { method: 'POST', body: JSON.stringify(data) }),
+  updateComment: (taskId: string, commentId: string, data: { content: string; reason?: string }) =>
+    apiFetch<{ comment: Comment }>(`/api/tasks/${taskId}/comments/${commentId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteComment: (taskId: string, commentId: string) =>
+    apiFetch(`/api/tasks/${taskId}/comments/${commentId}`, { method: 'DELETE' }),
+  getCommentEdits: (taskId: string, commentId: string) =>
+    apiFetch<{ edits: Array<{ id: string; original_content: string; edited_by: string; edited_at: string; reason?: string; editor_name: string; editor_avatar?: string }>; current: { content: string; updated_at: string } }>
+      (`/api/tasks/${taskId}/comments/${commentId}/edits`),
 };
 
 // ── Sprints ───────────────────────────────────────────────────────────────────

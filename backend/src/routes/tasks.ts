@@ -260,4 +260,108 @@ export async function taskRoutes(fastify: FastifyInstance) {
 
     return reply.status(201).send({ comment: withAuthor });
   });
+
+  // PATCH /api/tasks/:id/comments/:commentId — Edit comment
+  fastify.patch('/:id/comments/:commentId', { preHandler: authenticate }, async (request, reply) => {
+    const { commentId } = request.params as { id: string; commentId: string };
+    const { id: userId } = getUserFromRequest(request);
+    const { content, reason } = request.body as { content: string; reason?: string };
+
+    // Verify ownership
+    const comment = await queryOne(
+      `SELECT * FROM comments WHERE id = $1`,
+      [commentId]
+    );
+
+    if (!comment) {
+      return reply.status(404).send({ error: 'Comentario no encontrado' });
+    }
+
+    if (comment.author_id !== userId) {
+      return reply.status(403).send({ error: 'No puedes editar este comentario' });
+    }
+
+    // Save edit history - store the original content before updating
+    await query(
+      `INSERT INTO comment_edits (comment_id, original_content, edited_by, reason) VALUES ($1, $2, $3, $4)`,
+      [commentId, comment.content, userId, reason || null]
+    );
+
+    // Update comment with new content and increment edit count
+    const [updated] = await query(
+      `UPDATE comments SET content = $1, updated_at = NOW(), edit_count = COALESCE(edit_count, 0) + 1 WHERE id = $2 RETURNING *`,
+      [content, commentId]
+    );
+
+    const withAuthor = await queryOne(
+      `SELECT c.*, u.full_name as author_name, u.avatar_url as author_avatar FROM comments c JOIN users u ON u.id = c.author_id WHERE c.id = $1`,
+      [commentId]
+    );
+
+    return reply.send({ comment: withAuthor });
+  });
+
+  // GET /api/tasks/:id/comments/:commentId/edits — Get comment edit history
+  fastify.get('/:id/comments/:commentId/edits', { preHandler: authenticate }, async (request, reply) => {
+    const { commentId } = request.params as { id: string; commentId: string };
+
+    // Get all edits for this comment with editor info
+    const edits = await query(
+      `SELECT 
+        ce.id, 
+        ce.original_content, 
+        ce.edited_by, 
+        ce.edited_at,
+        ce.reason,
+        u.full_name as editor_name,
+        u.avatar_url as editor_avatar
+      FROM comment_edits ce
+      JOIN users u ON u.id = ce.edited_by
+      WHERE ce.comment_id = $1
+      ORDER BY ce.edited_at DESC`,
+      [commentId]
+    );
+
+    // Also get current content
+    const comment = await queryOne(
+      `SELECT content, updated_at FROM comments WHERE id = $1`,
+      [commentId]
+    );
+
+    if (!comment) {
+      return reply.status(404).send({ error: 'Comentario no encontrado' });
+    }
+
+    return reply.send({
+      edits,
+      current: {
+        content: comment.content,
+        updated_at: comment.updated_at
+      }
+    });
+  });
+
+  // DELETE /api/tasks/:id/comments/:commentId — Delete comment
+  fastify.delete('/:id/comments/:commentId', { preHandler: authenticate }, async (request, reply) => {
+    const { commentId } = request.params as { id: string; commentId: string };
+    const { id: userId } = getUserFromRequest(request);
+
+    // Verify ownership
+    const comment = await queryOne(
+      `SELECT * FROM comments WHERE id = $1`,
+      [commentId]
+    );
+
+    if (!comment) {
+      return reply.status(404).send({ error: 'Comentario no encontrado' });
+    }
+
+    if (comment.author_id !== userId) {
+      return reply.status(403).send({ error: 'No puedes eliminar este comentario' });
+    }
+
+    await query(`DELETE FROM comments WHERE id = $1`, [commentId]);
+
+    return reply.send({ success: true });
+  });
 }

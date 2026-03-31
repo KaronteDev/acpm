@@ -25,7 +25,24 @@ export default function TaskDetailPage() {
   const [mentionUsers, setMentionUsers] = useState<Awaited<ReturnType<typeof users.search>>['users']>([]);
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [mentionStartIndex, setMentionStartIndex] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState<{ [id: string]: string }>({});
+  const [editMentionUsers, setEditMentionUsers] = useState<Awaited<ReturnType<typeof users.search>>['users']>([]);
+  const [showEditMentionMenu, setShowEditMentionMenu] = useState(false);
+  const [editMentionQuery, setEditMentionQuery] = useState('');
+  const [editSelectedMentionIndex, setEditSelectedMentionIndex] = useState(0);
+  const [editMentionStartIndex, setEditMentionStartIndex] = useState(0);
+  const [editCommentInputRef, setEditCommentInputRef] = useState<HTMLTextAreaElement | null>(null);
+  const [editCommentSubmitting, setEditCommentSubmitting] = useState(false);
+  const [editReasons, setEditReasons] = useState<{ [id: string]: string }>({});
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
+  const [editHistoryCommentId, setEditHistoryCommentId] = useState<string | null>(null);
+  const [commentEdits, setCommentEdits] = useState<{ [id: string]: any }>({});
+  const [loadingEdits, setLoadingEdits] = useState(false);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -61,15 +78,25 @@ export default function TaskDetailPage() {
   async function handleCommentChange(value: string) {
     setNewComment(value);
     
-    // Detect @mentions
+    // Detect @mentions - permite espacios en nombres
     const lastAtIndex = value.lastIndexOf('@');
-    const lastSpaceIndex = value.lastIndexOf(' ', lastAtIndex);
     
-    if (lastAtIndex > -1 && (lastSpaceIndex === -1 || lastSpaceIndex < lastAtIndex)) {
-      const query = value.slice(lastAtIndex + 1);
+    if (lastAtIndex > -1) {
+      // Busca caracteres que terminan la mención
+      const afterAt = value.slice(lastAtIndex + 1);
+      const stopChars = [',', '.', '\n', ':'];
+      const stopIndex = Math.min(
+        ...stopChars.map(c => {
+          const idx = afterAt.indexOf(c);
+          return idx === -1 ? afterAt.length : idx;
+        })
+      );
+      const query = afterAt.slice(0, stopIndex).trim();
       
-      if (query.length >= 2 && !query.includes(' ')) {
+      if (query.length >= 2) {
         setMentionQuery(query);
+        setMentionStartIndex(lastAtIndex);
+        setSelectedMentionIndex(0);
         setShowMentionMenu(true);
         
         try {
@@ -87,11 +114,45 @@ export default function TaskDetailPage() {
   }
 
   function insertMention(user: User) {
-    const lastAtIndex = newComment.lastIndexOf('@');
-    const before = newComment.slice(0, lastAtIndex);
-    const after = newComment.slice(lastAtIndex + mentionQuery.length + 1);
-    setNewComment(`${before}@${user.full_name} ${after}`);
+    const before = newComment.slice(0, mentionStartIndex);
+    const after = newComment.slice(mentionStartIndex + mentionQuery.length + 1);
+    const newText = `${before}@${user.full_name} ${after}`;
+    setNewComment(newText);
     setShowMentionMenu(false);
+    
+    // Posicionar cursor después del nombre
+    setTimeout(() => {
+      if (commentInputRef.current) {
+        const cursorPos = mentionStartIndex + user.full_name.length + 2;
+        commentInputRef.current.setSelectionRange(cursorPos, cursorPos);
+        commentInputRef.current.focus();
+      }
+    }, 0);
+  }
+
+  function handleMentionKeyDown(e: React.KeyboardEvent) {
+    if (!showMentionMenu || mentionUsers.length === 0) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedMentionIndex(prev => (prev + 1) % mentionUsers.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedMentionIndex(prev => (prev - 1 + mentionUsers.length) % mentionUsers.length);
+        break;
+      case 'Enter':
+        if (showMentionMenu) {
+          e.preventDefault();
+          insertMention(mentionUsers[selectedMentionIndex]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowMentionMenu(false);
+        break;
+    }
   }
 
   function renderCommentContent(content: string) {
@@ -106,6 +167,156 @@ export default function TaskDetailPage() {
         part
       )
     );
+  }
+
+  function startEditingComment(commentId: string, content: string) {
+    setEditingCommentId(commentId);
+    setEditCommentContent({ [commentId]: content });
+  }
+
+  function cancelEditingComment() {
+    setEditingCommentId(null);
+    setEditCommentContent({});
+    setEditReasons({});
+    setShowEditMentionMenu(false);
+  }
+
+  async function handleEditCommentChange(commentId: string, value: string) {
+    setEditCommentContent(prev => ({ ...prev, [commentId]: value }));
+    
+    // Detect @mentions - permite espacios en nombres
+    const lastAtIndex = value.lastIndexOf('@');
+    
+    if (lastAtIndex > -1) {
+      const afterAt = value.slice(lastAtIndex + 1);
+      const stopChars = [',', '.', '\n', ':'];
+      const stopIndex = Math.min(
+        ...stopChars.map(c => {
+          const idx = afterAt.indexOf(c);
+          return idx === -1 ? afterAt.length : idx;
+        })
+      );
+      const query = afterAt.slice(0, stopIndex).trim();
+      
+      if (query.length >= 2) {
+        setEditMentionQuery(query);
+        setEditMentionStartIndex(lastAtIndex);
+        setEditSelectedMentionIndex(0);
+        setShowEditMentionMenu(true);
+        
+        try {
+          const { users: foundUsers } = await users.search(query);
+          setEditMentionUsers(foundUsers);
+        } catch {
+          setEditMentionUsers([]);
+        }
+      } else if (query.length < 2) {
+        setShowEditMentionMenu(false);
+      }
+    } else {
+      setShowEditMentionMenu(false);
+    }
+  }
+
+  function handleEditMentionKeyDown(e: React.KeyboardEvent) {
+    if (!showEditMentionMenu || editMentionUsers.length === 0) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setEditSelectedMentionIndex(prev => (prev + 1) % editMentionUsers.length);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setEditSelectedMentionIndex(prev => (prev - 1 + editMentionUsers.length) % editMentionUsers.length);
+        break;
+      case 'Enter':
+        if (showEditMentionMenu) {
+          e.preventDefault();
+          insertEditMention(editMentionUsers[editSelectedMentionIndex]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setShowEditMentionMenu(false);
+        break;
+    }
+  }
+
+  function insertEditMention(user: User) {
+    if (!editingCommentId) return;
+    const currentContent = editCommentContent[editingCommentId] || '';
+    const before = currentContent.slice(0, editMentionStartIndex);
+    const after = currentContent.slice(editMentionStartIndex + editMentionQuery.length + 1);
+    const newText = `${before}@${user.full_name} ${after}`;
+    setEditCommentContent(prev => ({ ...prev, [editingCommentId]: newText }));
+    setShowEditMentionMenu(false);
+    
+    // Posicionar cursor después del nombre
+    setTimeout(() => {
+      if (editCommentInputRef) {
+        const cursorPos = editMentionStartIndex + user.full_name.length + 2;
+        editCommentInputRef.setSelectionRange(cursorPos, cursorPos);
+        editCommentInputRef.focus();
+      }
+    }, 0);
+  }
+
+  async function saveEditedComment(commentId: string) {
+    if (!task || !editCommentContent[commentId]?.trim()) return;
+    setEditCommentSubmitting(true);
+    try {
+      const { comment } = await tasks.updateComment(task.id, commentId, { 
+        content: editCommentContent[commentId],
+        reason: editReasons[commentId] || undefined
+      });
+      setTask(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          comments: prev.comments?.map(c => c.id === commentId ? comment as unknown as TaskComment : c) ?? []
+        };
+      });
+      setEditingCommentId(null);
+      setEditCommentContent({});
+      setEditReasons({});
+      setShowEditMentionMenu(false);
+    } catch (err) {
+      alert('Error al guardar el comentario');
+    } finally {
+      setEditCommentSubmitting(false);
+    }
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    if (!task) return;
+    try {
+      await tasks.deleteComment(task.id, commentId);
+      setTask(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          comments: prev.comments?.filter(c => c.id !== commentId) ?? []
+        };
+      });
+      setDeleteCommentId(null);
+    } catch (err) {
+      alert('Error al eliminar el comentario');
+    }
+  }
+
+  async function loadCommentEdits(commentId: string) {
+    if (!task) return;
+    setLoadingEdits(true);
+    try {
+      const result = await tasks.getCommentEdits(task.id, commentId);
+      setCommentEdits(prev => ({ ...prev, [commentId]: result }));
+      setEditHistoryCommentId(commentId);
+    } catch (err) {
+      alert('Error al cargar el historial');
+    } finally {
+      setLoadingEdits(false);
+    }
   }
 
   async function startFlowSession(energy: number, flow: boolean) {
@@ -320,9 +531,100 @@ export default function TaskDetailPage() {
                         </div>
                         <span className="font-semibold text-text-0">{c.author_name}</span>
                         {c.is_thinking && <span className="text-[9px] text-amber bg-amber/10 px-1.5 rounded">💭 En voz alta</span>}
+                        {c.edit_count > 0 && (
+                          <button
+                            onClick={() => loadCommentEdits(c.id)}
+                            className="text-[9px] text-text-3 hover:text-text-1 underline cursor-pointer"
+                            title={`Editado ${c.edit_count} vez${c.edit_count > 1 ? 'es' : ''}`}
+                          >
+                            Editado
+                          </button>
+                        )}
                         <span className="text-text-3 ml-auto text-[10px]">{formatDateTime(c.created_at)}</span>
+                        {currentUser?.id === c.author_id && (
+                          <div className="flex items-center gap-1">
+                            {editingCommentId !== c.id && (
+                              <>
+                                <button
+                                  onClick={() => startEditingComment(c.id, c.content)}
+                                  className="px-1.5 py-0.5 text-[9px] text-purple hover:bg-purple/10 rounded transition-colors"
+                                  title="Editar"
+                                >
+                                  ✎
+                                </button>
+                                <button
+                                  onClick={() => setDeleteCommentId(c.id)}
+                                  className="px-1.5 py-0.5 text-[9px] text-red hover:bg-red/10 rounded transition-colors"
+                                  title="Eliminar"
+                                >
+                                  🗑
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <p className="text-text-1 leading-relaxed">{renderCommentContent(c.content)}</p>
+                      {editingCommentId === c.id ? (
+                        <div className="relative">
+                          <textarea
+                            ref={el => { if (el) setEditCommentInputRef(el); }}
+                            className="textarea bg-transparent border border-purple/30 p-2 mb-2 focus:ring-purple/50 w-full"
+                            rows={3}
+                            value={editCommentContent[c.id] || ''}
+                            onChange={e => handleEditCommentChange(c.id, e.target.value)}
+                            onKeyDown={handleEditMentionKeyDown}
+                          />
+                          
+                          {/* Edit mention autocomplete */}
+                          {showEditMentionMenu && editMentionUsers.length > 0 && (
+                            <div className="absolute bottom-full left-2 right-2 mb-1 bg-bg-3 border border-border rounded-lg overflow-hidden shadow-lg z-50">
+                              {editMentionUsers.map((user, idx) => (
+                                <button
+                                  key={user.id}
+                                  className={`w-full text-left px-3 py-2 transition-colors flex items-center gap-2 text-xs ${
+                                    idx === editSelectedMentionIndex ? 'bg-purple/30 border-l-2 border-l-purple' : 'hover:bg-bg-4'
+                                  }`}
+                                  onClick={() => insertEditMention(user)}
+                                >
+                                  <div className="w-4 h-4 rounded-full bg-purple/20 flex items-center justify-center text-[7px] font-bold text-purple"></div>
+                                  <span className="font-semibold text-text-1">{user.full_name}</span>
+                                  <span className="text-text-3 text-[9px]">{user.email}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="mb-2">
+                            <input
+                              type="text"
+                              className="input text-xs w-full"
+                              placeholder="Razón de la edición (opcional)"
+                              value={editReasons[c.id] || ''}
+                              onChange={e => setEditReasons(prev => ({ ...prev, [c.id]: e.target.value }))}
+                              disabled={editCommentSubmitting}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="btn btn-primary text-xs"
+                              onClick={() => saveEditedComment(c.id)}
+                              disabled={editCommentSubmitting}
+                            >
+                              {editCommentSubmitting ? 'Guardando...' : 'Guardar'}
+                            </button>
+                            <button
+                              className="btn btn-ghost text-xs"
+                              onClick={cancelEditingComment}
+                              disabled={editCommentSubmitting}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-text-1 leading-relaxed">{renderCommentContent(c.content)}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -330,20 +632,24 @@ export default function TaskDetailPage() {
               {/* Comment input */}
               <div className="bg-bg-2 border border-border rounded-xl p-3 relative">
                 <textarea
+                  ref={commentInputRef}
                   className="textarea bg-transparent border-0 p-0 mb-2 focus:ring-0 w-full"
                   rows={3}
                   placeholder="Añade un comentario... Usa @nombre para citar usuarios"
                   value={newComment}
                   onChange={e => handleCommentChange(e.target.value)}
+                  onKeyDown={handleMentionKeyDown}
                 />
                 
                 {/* Mention autocomplete */}
                 {showMentionMenu && mentionUsers.length > 0 && (
                   <div className="absolute bottom-full left-3 right-3 mb-1 bg-bg-3 border border-border rounded-lg overflow-hidden shadow-lg z-50">
-                    {mentionUsers.map(user => (
+                    {mentionUsers.map((user, idx) => (
                       <button
                         key={user.id}
-                        className="w-full text-left px-3 py-2 hover:bg-bg-4 transition-colors flex items-center gap-2 text-xs"
+                        className={`w-full text-left px-3 py-2 transition-colors flex items-center gap-2 text-xs ${
+                          idx === selectedMentionIndex ? 'bg-purple/30 border-l-2 border-l-purple' : 'hover:bg-bg-4'
+                        }`}
                         onClick={() => insertMention(user)}
                       >
                         <div className="w-4 h-4 rounded-full bg-purple/20 flex items-center justify-center text-[7px] font-bold text-purple">
@@ -507,6 +813,76 @@ export default function TaskDetailPage() {
         }}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
+      {/* Delete comment confirmation dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteCommentId}
+        title="Eliminar comentario"
+        message="¿Está seguro que desea eliminar este comentario? No se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous
+        onConfirm={() => {
+          if (deleteCommentId) handleDeleteComment(deleteCommentId);
+        }}
+        onCancel={() => setDeleteCommentId(null)}
+      />
+
+      {/* Comment edit history modal */}
+      {editHistoryCommentId && commentEdits[editHistoryCommentId] && (
+        <div className="fixed inset-0 bg-bg-0/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-bg-2 border border-border rounded-2xl w-full max-w-2xl max-h-96 overflow-y-auto p-6 animate-slide-up">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-text-0">Historial de Ediciones</h3>
+              <button
+                onClick={() => {
+                  setEditHistoryCommentId(null);
+                  setCommentEdits({});
+                }}
+                className="text-text-3 hover:text-text-1 text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingEdits ? (
+              <p className="text-xs text-text-3">Cargando...</p>
+            ) : (
+              <div className="space-y-4">
+                {commentEdits[editHistoryCommentId].edits.length === 0 ? (
+                  <p className="text-xs text-text-3">No hay ediciones previas</p>
+                ) : (
+                  commentEdits[editHistoryCommentId].edits.map((edit: any, idx: number) => (
+                    <div key={edit.id} className="bg-bg-3 border border-border/50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-4 h-4 rounded-full bg-purple/20 flex items-center justify-center text-[7px] font-bold text-purple">
+                          {edit.editor_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <span className="text-xs font-semibold text-text-0">{edit.editor_name}</span>
+                        <span className="text-[9px] text-text-3 ml-auto">{formatDateTime(edit.edited_at)}</span>
+                      </div>
+                      {edit.reason && (
+                        <p className="text-[9px] text-text-2 mb-2 italic">Razón: {edit.reason}</p>
+                      )}
+                      <div className="bg-bg-2 border border-border/30 rounded p-2 text-[9px] text-text-1 max-h-24 overflow-y-auto leading-relaxed">
+                        {edit.original_content}
+                      </div>
+                      {idx === 0 && (
+                        <div className="mt-2 pt-2 border-t border-border/30">
+                          <p className="text-[9px] text-text-3 mb-1">Versión actual:</p>
+                          <div className="bg-bg-2 border border-border/30 rounded p-2 text-[9px] text-text-1 max-h-24 overflow-y-auto leading-relaxed">
+                            {commentEdits[editHistoryCommentId].current.content}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
