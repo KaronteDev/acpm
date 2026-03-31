@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
@@ -18,6 +18,78 @@ const NAV = [
   null,
   { href: '/admin/users', icon: '🛡', label: 'Usuarios', adminOnly: true },
 ];
+
+function UserMenu({ user }: { user: any }) {
+  const router = useRouter();
+  const { logout } = useAuthStore();
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    }
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenu]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-bg-3 transition-colors w-full"
+      >
+        <div className="w-8 h-8 rounded-full bg-acpm-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+          {getInitials(user.full_name)}
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <div className="text-xs font-semibold text-text-0 truncate">{user.full_name}</div>
+          <div className="text-[10px] text-teal-dark truncate">{ROLE_LABELS[user.role]?.split(' ').slice(1).join(' ')}</div>
+        </div>
+        <span className="text-xs text-text-3">{showMenu ? '▲' : '▼'}</span>
+      </button>
+
+      {showMenu && (
+        <div className="absolute bottom-full mb-2 left-0 right-0 bg-bg-2 border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+          <Link
+            href="/profile"
+            onClick={() => setShowMenu(false)}
+            className="flex items-center gap-2 px-3 py-2 text-xs text-text-1 hover:bg-bg-3 hover:text-text-0 transition-colors border-b border-border"
+          >
+            👤 Perfil
+          </Link>
+          <Link
+            href="/preferences"
+            onClick={() => setShowMenu(false)}
+            className="flex items-center gap-2 px-3 py-2 text-xs text-text-1 hover:bg-bg-3 hover:text-text-0 transition-colors border-b border-border"
+          >
+            ⚙️ Preferencias
+          </Link>
+          <button
+            onClick={() => {
+              logout();
+              router.replace('/login');
+              setShowMenu(false);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red transition-colors"
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = 'color-mix(in srgb, rgb(231 76 60) 10%, transparent)';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+            }}
+          >
+            🚪 Cerrar sesión
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -88,24 +160,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* User */}
         <div className="px-3 py-3 border-t border-border">
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-bg-3 transition-colors group">
-            <Link href="/profile" className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
-              <div className="w-8 h-8 rounded-full bg-acpm-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                {getInitials(user.full_name)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-text-0 truncate">{user.full_name}</div>
-                <div className="text-[10px] text-teal-dark truncate">{ROLE_LABELS[user.role]?.split(' ').slice(1).join(' ')}</div>
-              </div>
-            </Link>
-            <button
-              onClick={() => { logout(); router.replace('/login'); }}
-              className="opacity-0 group-hover:opacity-100 text-text-3 hover:text-red transition-all text-xs"
-              title="Cerrar sesión"
-            >
-              ✕
-            </button>
-          </div>
+          <UserMenu user={user} />
         </div>
       </aside>
 
@@ -118,14 +173,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </h1>
 
           {/* Cognitive status bar */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-teal-dark/8 border border-teal-dark/20 rounded-full text-xs">
+          <div 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--accent-teal-dark) 8%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--accent-teal-dark) 20%, transparent)',
+              borderWidth: '1px'
+            }}
+          >
             <span className="text-text-2">Energía</span>
             <div className="flex gap-1">
               {[1,2,3,4,5].map(n => (
                 <div key={n} className={`w-1.5 h-1.5 rounded-full ${n <= 4 ? 'bg-teal-dark' : 'bg-bg-4'}`} />
               ))}
             </div>
-            <span className="bg-teal-dark/15 text-teal-dark border border-teal-dark/30 rounded px-1.5 py-0.5 text-[10px] font-semibold">
+            <span 
+              className="text-teal-dark rounded px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--accent-teal-dark) 15%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--accent-teal-dark) 30%, transparent)',
+                borderWidth: '1px'
+              }}
+            >
               🛡 Flujo Activo
             </span>
           </div>

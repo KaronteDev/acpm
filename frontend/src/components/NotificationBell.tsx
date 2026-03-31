@@ -4,12 +4,18 @@ import { useRouter } from 'next/navigation';
 import { notifications } from '@/lib/api';
 import type { Notification } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
+import { useTextToSpeech } from '@/lib/useTextToSpeech';
+import { useTheme } from '@/lib/useTheme';
 
 export function NotificationBell() {
   const router = useRouter();
+  const { speak, stop, isSpeaking, isSupported: ttsSupported } = useTextToSpeech();
+  const { theme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsList, setNotificationsList] = useState<Notification[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [readingAll, setReadingAll] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,6 +85,56 @@ export function NotificationBell() {
     }
   }
 
+  function buildNotificationText(n: Notification): string {
+    let text = n.message;
+    if (n.task_title) text += `. Tarea: ${n.task_title}`;
+    if (n.comment_content) text += `. Comentario: ${n.comment_content}`;
+    return text;
+  }
+
+  function handleSpeakNotification(n: Notification, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (speakingId === n.id) {
+      stop();
+      setSpeakingId(null);
+    } else {
+      const text = buildNotificationText(n);
+      speak(text);
+      setSpeakingId(n.id);
+    }
+  }
+
+  async function handleReadAll(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (readingAll) {
+      stop();
+      setReadingAll(false);
+      setSpeakingId(null);
+      return;
+    }
+
+    setReadingAll(true);
+    for (let i = 0; i < notificationsList.length; i++) {
+      const n = notificationsList[i];
+      const text = buildNotificationText(n);
+      
+      // Speak and wait for it to finish
+      await new Promise<void>(resolve => {
+        setSpeakingId(n.id);
+        speak(text);
+        
+        // Wait for speech to complete (roughly estimate based on text length and rate)
+        const estimatedTime = (text.length / 10) * 1000; // ~10 chars per second
+        setTimeout(() => {
+          resolve();
+        }, estimatedTime + 500);
+      });
+    }
+    
+    setReadingAll(false);
+    setSpeakingId(null);
+  }
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -110,21 +166,37 @@ export function NotificationBell() {
       {showDropdown && (
         <div className="absolute right-0 mt-2 w-80 bg-bg-2 border border-border rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="p-4 border-b border-border bg-bg-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-text-0">Notificaciones</h2>
-              {unreadCount > 0 && (
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await notifications.markAllAsRead();
-                    await loadUnreadCount();
-                    await loadNotifications();
-                  }}
-                  className="text-xs text-teal-dark hover:text-teal-dark/80"
-                >
-                  Marcar todas como leídas
-                </button>
-              )}
+              <div className="flex gap-1">
+                {ttsSupported && notificationsList.length > 0 && (
+                  <button
+                    onClick={handleReadAll}
+                    className="text-xs px-2 py-1 rounded transition-colors"
+                    style={{
+                      backgroundColor: readingAll ? 'color-mix(in srgb, var(--accent-red) 15%, transparent)' : 'transparent',
+                      color: readingAll ? 'var(--accent-red)' : 'var(--text-2)',
+                      border: readingAll ? '1px solid color-mix(in srgb, var(--accent-red) 30%, transparent)' : 'none',
+                    }}
+                    title={readingAll ? 'Detener lectura' : 'Leer todas'}
+                  >
+                    {readingAll ? '⏹ Detener' : '🔊 Leer todas'}
+                  </button>
+                )}
+                {unreadCount > 0 && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await notifications.markAllAsRead();
+                      await loadUnreadCount();
+                      await loadNotifications();
+                    }}
+                    className="text-xs text-teal-dark hover:text-teal-dark/80"
+                  >
+                    Marcar todas como leídas
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -173,10 +245,44 @@ export function NotificationBell() {
                       </div>
 
                       <div className="flex gap-1 flex-shrink-0">
+                        {ttsSupported && (
+                          <button
+                            onClick={(e) => handleSpeakNotification(n, e)}
+                            className="p-1 rounded transition-colors"
+                            style={{
+                              backgroundColor: speakingId === n.id ? 'color-mix(in srgb, var(--accent-purple) 20%, transparent)' : 'transparent',
+                              color: speakingId === n.id ? 'var(--accent-purple)' : 'var(--text-3)',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (speakingId !== n.id) {
+                                (e.target as HTMLElement).style.backgroundColor = 'color-mix(in srgb, var(--accent-purple) 10%, transparent)';
+                                (e.target as HTMLElement).style.color = 'var(--accent-purple)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (speakingId !== n.id) {
+                                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                                (e.target as HTMLElement).style.color = 'var(--text-3)';
+                              }
+                            }}
+                            title={speakingId === n.id ? 'Detener lectura' : 'Leer notificación'}
+                          >
+                            {speakingId === n.id ? '⏹' : '🔊'}
+                          </button>
+                        )}
                         {!n.is_read && (
                           <button
                             onClick={(e) => markAsRead(n.id, e)}
-                            className="p-1 text-text-3 hover:text-teal-dark hover:bg-teal-dark/10 rounded transition-colors"
+                            className="p-1 text-text-3 rounded transition-colors"
+                            style={{ color: 'var(--text-3)' }}
+                            onMouseEnter={(e) => {
+                              (e.target as HTMLElement).style.backgroundColor = 'color-mix(in srgb, var(--accent-teal-dark) 10%, transparent)';
+                              (e.target as HTMLElement).style.color = 'var(--accent-teal-dark)';
+                            }}
+                            onMouseLeave={(e) => {
+                              (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                              (e.target as HTMLElement).style.color = 'var(--text-3)';
+                            }}
                             title="Marcar como leída"
                           >
                             ✓
@@ -184,7 +290,16 @@ export function NotificationBell() {
                         )}
                         <button
                           onClick={(e) => deleteNotification(n.id, e)}
-                          className="p-1 text-text-3 hover:text-red hover:bg-red/10 rounded transition-colors"
+                          className="p-1 text-text-3 rounded transition-colors"
+                          style={{ color: 'var(--text-3)' }}
+                          onMouseEnter={(e) => {
+                            (e.target as HTMLElement).style.backgroundColor = 'color-mix(in srgb, rgb(231 76 60) 10%, transparent)';
+                            (e.target as HTMLElement).style.color = 'rgb(231 76 60)';
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                            (e.target as HTMLElement).style.color = 'var(--text-3)';
+                          }}
                           title="Eliminar"
                         >
                           ✕

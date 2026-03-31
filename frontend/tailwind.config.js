@@ -8,50 +8,45 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // ACPM palette — from SVG portada
+        // Use CSS variables for dynamic theming - using rgb() for opacity support
         bg: {
-          0: '#060F1C',   // deepest background
-          1: '#0A1628',   // sidebar / panels
-          2: '#0D1E38',   // cards
-          3: '#111E35',   // elevated cards
-          4: '#162240',   // hover states
-          5: '#1A2C50',   // borders active
+          0: 'var(--bg-0)',
+          1: 'var(--bg-1)',
+          2: 'var(--bg-2)',
+          3: 'var(--bg-3)',
+          4: 'var(--bg-4)',
+          5: 'var(--bg-5)',
         },
         border: {
-          DEFAULT: '#1A2C45',
-          hi: '#2A4E72',
+          DEFAULT: 'var(--border-default)',
+          hi: 'var(--border-hi)',
         },
         purple: {
-          light: '#AFA9EC',
-          DEFAULT: '#7F77DD',
-          dark: '#534AB7',
+          DEFAULT: 'var(--accent-purple)',
+          dark: 'var(--accent-purple-dark)',
+          light: 'var(--accent-purple)',
         },
         teal: {
-          light: '#9FE1CB',
-          DEFAULT: '#5DCAA5',
-          dark: '#1D9E75',
-          deeper: '#0F6E56',
+          DEFAULT: 'var(--accent-teal)',
+          dark: 'var(--accent-teal-dark)',
+          deeper: 'var(--accent-teal-dark)',
+          light: 'var(--accent-teal)',
         },
         amber: {
-          light: '#FCD34D',
-          DEFAULT: '#EF9F27',
-          dark: '#BA7517',
-        },
-        navy: {
-          light: '#2A4E72',
-          DEFAULT: '#1A3B5A',
-          dark: '#1A3A58',
+          DEFAULT: 'var(--accent-amber)',
+          dark: 'var(--accent-amber)',
+          light: 'var(--accent-amber)',
         },
         text: {
-          0: '#F0F4FF',
-          1: '#B4C5E0',
-          2: '#6A8AAE',
-          3: '#3A5070',
+          0: 'var(--text-0)',
+          1: 'var(--text-1)',
+          2: 'var(--text-2)',
+          3: 'var(--text-3)',
         },
-        red: {
-          DEFAULT: '#E74C3C',
-          soft: 'rgba(231,76,60,0.15)',
-        },
+        // RGB colors for opacity variants (fallbacks)
+        red: 'rgb(231 76 60 / <alpha-value>)',
+        'acpm-primary': 'var(--accent-purple)',
+        'acpm-secondary': 'var(--accent-teal)',
       },
       fontFamily: {
         sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
@@ -59,14 +54,14 @@ module.exports = {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'acpm-brand': 'linear-gradient(135deg, #7F77DD, #1D9E75)',
-        'acpm-blue': 'linear-gradient(135deg, #534AB7, #1D9E75)',
-        'acpm-glow': 'linear-gradient(135deg, rgba(127,119,221,0.2), rgba(29,158,117,0.2))',
+        'acpm-brand': 'linear-gradient(135deg, var(--accent-purple), var(--accent-teal))',
+        'acpm-blue': 'linear-gradient(135deg, var(--accent-purple-dark), var(--accent-teal-dark))',
+        'acpm-glow': 'linear-gradient(135deg, rgba(var(--accent-purple-rgb, 127 119 221), 0.2), rgba(var(--accent-teal-rgb, 29 158 117), 0.2))',
       },
       boxShadow: {
-        'glow-purple': '0 0 20px rgba(127,119,221,0.3)',
-        'glow-teal': '0 0 20px rgba(29,158,117,0.3)',
-        'glow-amber': '0 0 12px rgba(239,159,39,0.4)',
+        'glow-purple': '0 0 20px rgba(var(--accent-purple-rgb, 127 119 221), 0.3)',
+        'glow-teal': '0 0 20px rgba(var(--accent-teal-rgb, 29 158 117), 0.3)',
+        'glow-amber': '0 0 12px rgba(var(--accent-amber-rgb, 239 159 39), 0.4)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

@@ -9,6 +9,158 @@
     --scrollbar-thumb-hover: #2A4E72;
   }
 
+  /* LIGHT THEME (Default / Initial)
+     Used when:
+     - User has no saved preference
+     - System prefers light mode
+     - First time user opens the app
+  */
+  [data-theme="light"] {
+    --bg-0: #FFFFFF;
+    --bg-1: #F8FAFC;
+    --bg-2: #F0F4F8;
+    --bg-3: #E8ECF1;
+    --bg-4: #E0E8F0;
+    --bg-5: #D8E0E8;
+    
+    --border-default: #CBD5E0;
+    --border-hi: #A0AEC0;
+    
+    --text-0: #0F1419;
+    --text-1: #2D3748;
+    --text-2: #4A5568;
+    --text-3: #718096;
+    
+    --accent-purple: #7F77DD;
+    --accent-purple-dark: #534AB7;
+    --accent-teal: #1D9E75;
+    --accent-teal-dark: #0F6E56;
+    --accent-amber: #EF9F27;
+    --accent-red: #E74C3C;
+    
+    --scrollbar-track: #E8ECF1;
+    --scrollbar-thumb: #CBD5E0;
+    --scrollbar-thumb-hover: #A0AEC0;
+  }
+
+  /* HIGH CONTRAST THEME (WCAG AAA Accessibility)
+     Used when:
+     - User selects it in Preferences
+     - For users with low vision or color blindness sensitivities
+  */
+  [data-theme="high_contrast"] {
+    --bg-0: #000000;
+    --bg-1: #121212;
+    --bg-2: #1E1E1E;
+    --bg-3: #2A2A2A;
+    --bg-4: #404040;
+    --bg-5: #555555;
+    
+    --border-default: #FFFF00;
+    --border-hi: #FFFFFF;
+    
+    --text-0: #FFFFFF;
+    --text-1: #FFFF00;
+    --text-2: #CCCCCC;
+    --text-3: #999999;
+    
+    --accent-purple: #FF00FF;
+    --accent-purple-dark: #FF66FF;
+    --accent-teal: #00FFFF;
+    --accent-teal-dark: #00FFAA;
+    --accent-amber: #FFFF00;
+    --accent-red: #FF0000;
+    
+    --scrollbar-track: #2A2A2A;
+    --scrollbar-thumb: #FFFF00;
+    --scrollbar-thumb-hover: #FFFFFF;
+  }
+
+  /* COLORBLIND THEME (Deuteranopia-friendly)
+     Used when:
+     - User selects it in Preferences
+     - For users with protanopia or deuteranopia (red-green color blindness)
+     - High contrast but using deuteranopia-safe colors
+  */
+  [data-theme="colorblind"] {
+    --bg-0: #FAFAF8;
+    --bg-1: #F2F2ED;
+    --bg-2: #E8E8E3;
+    --bg-3: #DCDCD9;
+    --bg-4: #D4D4D1;
+    --bg-5: #CCCCCA;
+    
+    --border-default: #A9A9A6;
+    --border-hi: #888884;
+    
+    --text-0: #0C0C0B;
+    --text-1: #3A3A38;
+    --text-2: #5F5F5D;
+    --text-3: #888884;
+    
+    --accent-purple: #0173B2;
+    --accent-purple-dark: #005F87;
+    --accent-teal: #DE8F05;
+    --accent-teal-dark: #A35E13;
+    --accent-amber: #CC78BC;
+    --accent-red: #D55E0A;
+    
+    --scrollbar-track: #DCDCD9;
+    --scrollbar-thumb: #A9A9A6;
+    --scrollbar-thumb-hover: #888884;
+  }
+
+  /* DARK THEME (Original ACPM design)
+     Used when:
+     - User selects it in Preferences
+     - Original dark theme from initial ACPM design
+     - Good for low-light environments
+  */
+  [data-theme="dark"] {
+    --bg-0: #060F1C;
+    --bg-1: #0A1628;
+    --bg-2: #0D1E38;
+    --bg-3: #111E35;
+    --bg-4: #162240;
+    --bg-5: #1A2C50;
+    
+    --border-default: #1A2C45;
+    --border-hi: #2A4E72;
+    
+    --text-0: #F0F4FF;
+    --text-1: #B4C5E0;
+    --text-2: #6A8AAE;
+    --text-3: #3A5070;
+    
+    --accent-purple: #7F77DD;
+    --accent-purple-dark: #534AB7;
+    --accent-teal: #5DCAA5;
+    --accent-teal-dark: #1D9E75;
+    --accent-amber: #EF9F27;
+    --accent-red: #E74C3C;
+    
+    --scrollbar-track: #0A1628;
+    --scrollbar-thumb: #162240;
+    --scrollbar-thumb-hover: #2A4E72;
+  }
+
+  /* Apply CSS variables to Tailwind colors */
+  :root {
+    color-scheme: light;
+  }
+
+  [data-theme="high_contrast"] {
+    color-scheme: dark;
+  }
+
+  [data-theme="colorblind"] {
+    color-scheme: light;
+  }
+
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -64,7 +216,13 @@
   }
 
   .btn-teal {
-    @apply bg-teal-dark/15 text-teal-dark border border-teal-dark/30 hover:bg-teal-dark/25;
+    background-color: color-mix(in srgb, var(--accent-teal) 15%, transparent);
+    @apply text-teal-dark border transition-colors;
+    border-color: color-mix(in srgb, var(--accent-teal) 30%, transparent);
+  }
+
+  .btn-teal:hover {
+    background-color: color-mix(in srgb, var(--accent-teal) 25%, transparent);
   }
 
   .btn-ghost {
@@ -72,7 +230,13 @@
   }
 
   .btn-danger {
-    @apply bg-red/15 text-red border border-red/30 hover:bg-red/25;
+    background-color: color-mix(in srgb, var(--accent-red) 15%, transparent);
+    @apply text-red border transition-colors;
+    border-color: color-mix(in srgb, var(--accent-red) 30%, transparent);
+  }
+
+  .btn-danger:hover {
+    background-color: color-mix(in srgb, var(--accent-red) 25%, transparent);
   }
 
   .card {

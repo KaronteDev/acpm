@@ -335,3 +335,26 @@ export const notifications = {
   delete: (id: string) => 
     apiFetch<{ success: boolean }>(`/api/notifications/${id}`, { method: 'DELETE' }),
 };
+
+// ── User Preferences ───────────────────────────────────────────────────────────
+export interface UserPreferences {
+  id: string;
+  email: string;
+  full_name: string;
+  theme_preference: 'light' | 'high_contrast' | 'colorblind' | 'dark';
+  text_to_speech_enabled: boolean;
+  tts_voice: string;
+  tts_rate: number;
+}
+
+export const userPreferences = {
+  get: () => 
+    apiFetch<UserPreferences>('/api/user/preferences'),
+  profile: () => 
+    apiFetch<User & { theme_preference: 'light' | 'high_contrast' | 'colorblind' | 'dark'; text_to_speech_enabled: boolean; tts_voice: string; tts_rate: number }>('/api/user/profile'),
+  update: (data: Partial<{ theme_preference: string; text_to_speech_enabled: boolean; tts_voice: string; tts_rate: number }>) =>
+    apiFetch<{ message: string; preferences: Partial<UserPreferences> }>('/api/user/preferences', { 
+      method: 'PATCH', 
+      body: JSON.stringify(data) 
+    }),
+};

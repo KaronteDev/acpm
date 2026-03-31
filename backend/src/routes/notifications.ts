@@ -38,12 +38,12 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   fastify.get('/unread-count', { preHandler: authenticate }, async (request, reply) => {
     const { id: userId } = getUserFromRequest(request);
 
-    const [result] = await query(
+    const [result] = await query<{ count: string }>(
       `SELECT COUNT(*) as count FROM notifications WHERE user_id = $1 AND is_read = FALSE`,
       [userId]
     );
 
-    return reply.send({ unread_count: parseInt(result.count) });
+    return reply.send({ unread_count: result ? parseInt(result.count as string) : 0 });
   });
 
   // PATCH /api/notifications/:id/read - Mark notification as read

@@ -16,6 +16,13 @@ const UpdateUserSchema = z.object({
   aacc_indicators: z.record(z.unknown()).optional(),
 });
 
+const PreferencesSchema = z.object({
+  theme_preference: z.enum(['light', 'high_contrast', 'colorblind']).optional(),
+  text_to_speech_enabled: z.boolean().optional(),
+  tts_voice: z.string().optional(),
+  tts_rate: z.number().min(0.5).max(2.0).optional(),
+});
+
 export async function userRoutes(fastify: FastifyInstance) {
   // GET /api/users/search - Search users for mentions (authenticated only)
   fastify.get('/search', { preHandler: authenticate }, async (request, reply) => {
