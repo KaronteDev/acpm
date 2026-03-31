@@ -1,0 +1,34 @@
+{
+  "name": "acpm-backend",
+  "version": "1.0.0",
+  "description": "ACPM Backend API — Altas Capacidades Project Manager",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "migrate": "tsx src/db/migrate.ts",
+    "seed": "tsx src/db/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/jwt": "^8.0.1",
+    "@fastify/swagger": "^8.14.0",
+    "@fastify/swagger-ui": "^4.0.0",
+    "@fastify/websocket": "^10.0.1",
+    "bcryptjs": "^2.4.3",
+    "fastify": "^4.28.1",
+    "ioredis": "^5.3.2",
+    "pg": "^8.11.5",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.14.10",
+    "@types/pg": "^8.11.6",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}
