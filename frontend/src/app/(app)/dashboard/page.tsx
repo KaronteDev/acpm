@@ -1,19 +1,24 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { dashboard, projects, wellness } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { dashboard, projects, wellness, tasks as tasksApi } from '@/lib/api';
 import type { DashboardStats, Task, Activity, Project, CognitiveAlert } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import { formatDateTime, TASK_STATUS_BG, COGNITIVE_TYPE_COLORS, COGNITIVE_TYPE_LABELS, getPCCClass, PRIORITY_LABELS, getInitials } from '@/lib/utils';
 
 export default function DashboardPage() {
   const user = useAuthStore(s => s.user);
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [activeProjects, setActiveProjects] = useState<Project[]>([]);
   const [alerts, setAlerts] = useState<CognitiveAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBrainDump, setShowBrainDump] = useState(false);
+  const [brainDumpText, setBrainDumpText] = useState('');
+  const [brainDumpProject, setBrainDumpProject] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -49,7 +54,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="btn btn-teal text-xs">🧠 Brain Dump</button>
+          <button onClick={() => setShowBrainDump(true)} className="btn btn-teal text-xs">🧠 Brain Dump</button>
           <button className="btn btn-primary text-xs">▶ Iniciar Sesión de Flujo</button>
         </div>
       </div>
@@ -183,6 +188,57 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Brain Dump Modal */}
+      {showBrainDump && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-0/80" onClick={() => setShowBrainDump(false)}>
+          <div className="bg-bg-2 border border-border rounded-xl p-6 w-full max-w-lg shadow-xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-text-0 mb-1">🧠 Brain Dump</h3>
+            <p className="text-xs text-text-2 mb-4">Vacía tu mente. Cada línea se convertirá en una tarea en el backlog.</p>
+
+            <select
+              className="select w-full text-xs mb-3"
+              value={brainDumpProject}
+              onChange={e => setBrainDumpProject(e.target.value)}
+            >
+              <option value="">Seleccionar proyecto</option>
+              {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+
+            <textarea
+              className="input w-full h-40 resize-none text-sm font-mono"
+              placeholder={"Una idea por línea...\nRefactorizar módulo de auth\nInvestigar WebSockets\nRevisar PR de Marc"}
+              value={brainDumpText}
+              onChange={e => setBrainDumpText(e.target.value)}
+              autoFocus
+            />
+
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-[10px] text-text-3">
+                {brainDumpText.split('\n').filter(l => l.trim()).length} tarea(s)
+              </span>
+              <div className="flex gap-2">
+                <button onClick={() => setShowBrainDump(false)} className="btn btn-ghost text-xs">Cancelar</button>
+                <button
+                  className="btn btn-teal text-xs"
+                  disabled={!brainDumpProject || !brainDumpText.trim()}
+                  onClick={async () => {
+                    const lines = brainDumpText.split('\n').filter(l => l.trim());
+                    await Promise.all(lines.map(title =>
+                      tasksApi.create({ project_id: brainDumpProject, title: title.trim(), status: 'backlog', priority: 'medium', cognitive_type: 'routine', cognitive_points: 3 })
+                    ));
+                    setBrainDumpText('');
+                    setShowBrainDump(false);
+                    router.refresh();
+                  }}
+                >
+                  Crear {brainDumpText.split('\n').filter(l => l.trim()).length} tarea(s)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

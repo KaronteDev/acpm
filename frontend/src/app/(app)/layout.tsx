@@ -87,14 +87,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* User */}
         <div className="px-3 py-3 border-t border-border">
-          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-bg-3 cursor-pointer transition-colors group">
-            <div className="w-8 h-8 rounded-full bg-acpm-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-              {getInitials(user.full_name)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-text-0 truncate">{user.full_name}</div>
-              <div className="text-[10px] text-teal-dark truncate">{ROLE_LABELS[user.role]?.split(' ').slice(1).join(' ')}</div>
-            </div>
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-bg-3 transition-colors group">
+            <Link href="/profile" className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
+              <div className="w-8 h-8 rounded-full bg-acpm-brand flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                {getInitials(user.full_name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold text-text-0 truncate">{user.full_name}</div>
+                <div className="text-[10px] text-teal-dark truncate">{ROLE_LABELS[user.role]?.split(' ').slice(1).join(' ')}</div>
+              </div>
+            </Link>
             <button
               onClick={() => { logout(); router.replace('/login'); }}
               className="opacity-0 group-hover:opacity-100 text-text-3 hover:text-red transition-all text-xs"

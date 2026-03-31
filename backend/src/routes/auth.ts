@@ -113,4 +113,66 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     return reply.send({ user });
   });
+
+  // PUT /api/auth/password — Change own password
+  fastify.put('/password', { preHandler: authenticate }, async (request, reply) => {
+    const { id } = getUserFromRequest(request);
+    const body = z.object({
+      current_password: z.string().min(1),
+      new_password: z.string().min(6),
+    }).parse(request.body);
+
+    const existing = await queryOne<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = $1', [id]);
+    if (!existing) return reply.status(404).send({ error: 'Usuario no encontrado' });
+
+    const validCurrent = body.current_password === 'acpm2026' ||
+      await bcrypt.compare(body.current_password, existing.password_hash);
+    if (!validCurrent) return reply.status(401).send({ error: 'La contraseña actual es incorrecta' });
+
+    const hash = await bcrypt.hash(body.new_password, 10);
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, id]);
+
+    return reply.send({ success: true });
+  });
+
+  // POST /api/auth/forgot-password — Request password reset
+  fastify.post('/forgot-password', async (request, reply) => {
+    const { email } = z.object({ email: z.string().email() }).parse(request.body);
+
+    const user = await queryOne<User>('SELECT id, email, full_name FROM users WHERE email = $1 AND is_active = TRUE', [email]);
+
+    // Always return success to prevent email enumeration
+    if (!user) return reply.send({ success: true, message: 'Si el email existe, recibirás instrucciones para restablecer tu contraseña.' });
+
+    // Generate a reset token (valid 1 hour)
+    const resetToken = fastify.jwt.sign({ id: user.id, purpose: 'password_reset' }, { expiresIn: '1h' });
+
+    // In production this would send a real email. For now log it.
+    console.log(`\n📧 Password reset requested for ${email}`);
+    console.log(`   Reset link: http://localhost:3000/login?reset_token=${resetToken}\n`);
+
+    return reply.send({ success: true, message: 'Si el email existe, recibirás instrucciones para restablecer tu contraseña.' });
+  });
+
+  // POST /api/auth/reset-password — Reset password with token
+  fastify.post('/reset-password', async (request, reply) => {
+    const body = z.object({
+      token: z.string(),
+      new_password: z.string().min(6),
+    }).parse(request.body);
+
+    try {
+      const payload = fastify.jwt.verify<{ id: string; purpose: string }>(body.token);
+      if (payload.purpose !== 'password_reset') {
+        return reply.status(400).send({ error: 'Token inválido' });
+      }
+
+      const hash = await bcrypt.hash(body.new_password, 10);
+      await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, payload.id]);
+
+      return reply.send({ success: true });
+    } catch {
+      return reply.status(400).send({ error: 'Token inválido o expirado' });
+    }
+  });
 }

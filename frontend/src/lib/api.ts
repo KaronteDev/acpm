@@ -37,6 +37,21 @@ export const auth = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+  changePassword: (current_password: string, new_password: string) =>
+    apiFetch<{ success: boolean }>('/api/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({ current_password, new_password }),
+    }),
+  forgotPassword: (email: string) =>
+    apiFetch<{ success: boolean; message: string }>('/api/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, new_password: string) =>
+    apiFetch<{ success: boolean }>('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password }),
+    }),
 };
 
 // ── Projects ──────────────────────────────────────────────────────────────────
