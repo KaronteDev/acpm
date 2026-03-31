@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { tasks, projects } from '@/lib/api';
 import type { Task, Project } from '@/lib/api';
 import { COGNITIVE_TYPE_COLORS, COGNITIVE_TYPE_LABELS, getPCCClass, getInitials, TASK_STATUS_LABELS } from '@/lib/utils';
@@ -17,19 +18,38 @@ const COLUMNS: { id: KanbanStatus; label: string; color: string; icon: string }[
 ];
 
 export default function KanbanPage() {
+  const router = useRouter();
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [filterCog, setFilterCog] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [movingTask, setMovingTask] = useState<string | null>(null);
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
 
+  // Load saved project and projects list
   useEffect(() => {
     projects.list({ status: 'active' }).then(r => {
       setProjectList(r.projects);
-      if (r.projects.length > 0) setSelectedProject(r.projects[0].id);
+      // Load saved project from localStorage
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('kanban_project');
+        const projectExists = r.projects.some(p => p.id === saved);
+        if (saved && projectExists) {
+          setSelectedProject(saved);
+        } else if (r.projects.length > 0) {
+          setSelectedProject(r.projects[0].id);
+        }
+      }
     });
   }, []);
+
+  // Save project to localStorage when selected
+  useEffect(() => {
+    if (selectedProject && typeof window !== 'undefined') {
+      localStorage.setItem('kanban_project', selectedProject);
+    }
+  }, [selectedProject]);
 
   useEffect(() => {
     if (!selectedProject) return;
@@ -95,7 +115,21 @@ export default function KanbanPage() {
             {COLUMNS.map(col => {
               const colTasks = getColumnTasks(col.id);
               return (
-                <div key={col.id} className="flex-shrink-0 w-[220px] bg-bg-1 border border-border rounded-xl flex flex-col overflow-hidden">
+                <div
+                  key={col.id}
+                  className="flex-shrink-0 w-[220px] bg-bg-1 border border-border rounded-xl flex flex-col overflow-hidden transition-all"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const taskData = e.dataTransfer.getData('task');
+                    if (taskData) {
+                      const parsed = JSON.parse(taskData);
+                      if (parsed.status !== col.id) {
+                        moveTask(parsed.id, col.id);
+                      }
+                    }
+                  }}
+                >
                   {/* Column header */}
                   <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
@@ -140,12 +174,27 @@ function KanbanCard({ task, col, moving, onMove, columns }: {
   onMove: (id: string, status: string) => void;
   columns: typeof COLUMNS;
 }) {
+  const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const cogColor = COGNITIVE_TYPE_COLORS[task.cognitive_type];
 
+  const handleDoubleClick = () => {
+    router.push(`/tasks/${task.id}`);
+  };
+
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('task', JSON.stringify({ id: task.id, status: task.status }));
+  };
+
   return (
-    <div className={`bg-bg-2 border border-border rounded-lg p-2.5 transition-all relative group ${moving ? 'opacity-50' : 'hover:border-border-hi hover:-translate-y-0.5 cursor-pointer'}`}
-      style={{ borderLeft: `3px solid ${cogColor}` }}>
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      onDoubleClick={handleDoubleClick}
+      className={`bg-bg-2 border border-border rounded-lg p-2.5 transition-all relative group ${moving ? 'opacity-50' : 'hover:border-border-hi hover:-translate-y-0.5'} cursor-grab active:cursor-grabbing`}
+      style={{ borderLeft: `3px solid ${cogColor}` }}
+    >
       {/* Flow badge */}
       {task.active_session?.flow_mode && (
         <div className="flex items-center gap-1 text-[9px] text-teal-dark mb-1.5">
@@ -158,9 +207,7 @@ function KanbanCard({ task, col, moving, onMove, columns }: {
         </div>
       )}
 
-      <Link href={`/tasks/${task.id}`}>
-        <p className="text-[11px] text-text-0 leading-snug mb-2 line-clamp-3">{task.title}</p>
-      </Link>
+      <p className="text-[11px] text-text-0 leading-snug mb-2 line-clamp-3">{task.title}</p>
 
       {/* Tags */}
       {task.tags?.length > 0 && (
