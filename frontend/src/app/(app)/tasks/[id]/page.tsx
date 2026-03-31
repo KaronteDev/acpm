@@ -42,6 +42,7 @@ export default function TaskDetailPage() {
   const [editHistoryCommentId, setEditHistoryCommentId] = useState<string | null>(null);
   const [commentEdits, setCommentEdits] = useState<{ [id: string]: any }>({});
   const [loadingEdits, setLoadingEdits] = useState(false);
+  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -49,6 +50,36 @@ export default function TaskDetailPage() {
     setLoading(true);
     tasks.get(id).then(r => setTask(r.task)).catch(() => {}).finally(() => setLoading(false));
   }, [id]);
+
+  // Extract comment ID from hash and scroll to it
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#comment-')) {
+        const commentId = hash.slice(9); // Remove '#comment-'
+        setHighlightedCommentId(commentId);
+        
+        // Wait for DOM to be ready
+        setTimeout(() => {
+          const element = document.getElementById(`comment-${commentId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Remove highlight after 3 seconds
+            setTimeout(() => setHighlightedCommentId(null), 3000);
+          }
+        }, 200);
+      }
+    };
+
+    // Check on initial load
+    handleHashChange();
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   async function updateField(field: string, value: unknown) {
     if (!task) return;
@@ -524,7 +555,11 @@ export default function TaskDetailPage() {
               {task.comments && task.comments.length > 0 && (
                 <div className="space-y-3 mb-4">
                   {task.comments.map(c => (
-                    <div key={c.id} className={`p-3 rounded-xl border text-xs ${c.is_thinking ? 'bg-amber/5 border-amber/20 border-l-2 border-l-amber' : 'bg-bg-2 border-border'}`}>
+                    <div key={c.id} id={`comment-${c.id}`} className={`p-3 rounded-xl border text-xs transition-all ${
+                      highlightedCommentId === c.id 
+                        ? 'bg-yellow/20 border-yellow ring-2 ring-yellow/50 shadow-lg' 
+                        : c.is_thinking ? 'bg-amber/5 border-amber/20 border-l-2 border-l-amber' : 'bg-bg-2 border-border'
+                    }`}>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-5 h-5 rounded-full bg-purple/20 flex items-center justify-center text-[8px] font-bold text-purple">
                           {getInitials(c.author_name)}

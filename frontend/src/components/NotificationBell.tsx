@@ -1,10 +1,12 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { notifications } from '@/lib/api';
 import type { Notification } from '@/lib/api';
 import { formatDateTime } from '@/lib/utils';
 
 export function NotificationBell() {
+  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsList, setNotificationsList] = useState<Notification[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -42,23 +44,38 @@ export function NotificationBell() {
     setShowDropdown(!showDropdown);
   }
 
-  async function markAsRead(id: string) {
+  async function markAsRead(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
     try {
       await notifications.markAsRead(id);
       setNotificationsList(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       await loadUnreadCount();
-    } catch {
-      // Handle error silently
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
     }
   }
 
-  async function deleteNotification(id: string) {
+  async function deleteNotification(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
     try {
       await notifications.delete(id);
       setNotificationsList(prev => prev.filter(n => n.id !== id));
       await loadUnreadCount();
-    } catch {
-      // Handle error silently
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  }
+
+  function handleNotificationClick(notification: Notification, e: React.MouseEvent) {
+    if (notification.task_id) {
+      setShowDropdown(false);
+      // Navigate to task with comment anchor if available
+      if (notification.comment_id) {
+        // Use window.location to ensure hash is processed
+        window.location.href = `/tasks/${notification.task_id}#comment-${notification.comment_id}`;
+      } else {
+        router.push(`/tasks/${notification.task_id}`);
+      }
     }
   }
 
@@ -97,7 +114,8 @@ export function NotificationBell() {
               <h2 className="text-sm font-semibold text-text-0">Notificaciones</h2>
               {unreadCount > 0 && (
                 <button
-                  onClick={async () => {
+                  onClick={async (e) => {
+                    e.stopPropagation();
                     await notifications.markAllAsRead();
                     await loadUnreadCount();
                     await loadNotifications();
@@ -121,7 +139,8 @@ export function NotificationBell() {
                 {notificationsList.map(n => (
                   <div
                     key={n.id}
-                    className={`p-3 hover:bg-bg-3 transition-colors group ${
+                    onClick={(e) => handleNotificationClick(n, e)}
+                    className={`p-3 hover:bg-bg-3 transition-colors group cursor-pointer ${
                       !n.is_read ? 'bg-purple/5' : ''
                     }`}
                   >
@@ -153,10 +172,10 @@ export function NotificationBell() {
                         </p>
                       </div>
 
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      <div className="flex gap-1 flex-shrink-0">
                         {!n.is_read && (
                           <button
-                            onClick={() => markAsRead(n.id)}
+                            onClick={(e) => markAsRead(n.id, e)}
                             className="p-1 text-text-3 hover:text-teal-dark hover:bg-teal-dark/10 rounded transition-colors"
                             title="Marcar como leída"
                           >
@@ -164,7 +183,7 @@ export function NotificationBell() {
                           </button>
                         )}
                         <button
-                          onClick={() => deleteNotification(n.id)}
+                          onClick={(e) => deleteNotification(n.id, e)}
                           className="p-1 text-text-3 hover:text-red hover:bg-red/10 rounded transition-colors"
                           title="Eliminar"
                         >
