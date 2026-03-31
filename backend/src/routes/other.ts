@@ -161,12 +161,21 @@ export async function wellnessRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { id: userId } = getUserFromRequest(request);
 
-    await query(
-      `UPDATE cognitive_alerts SET resolved = TRUE, resolved_at = NOW(), resolved_by = $1 WHERE id = $2`,
-      [userId, id]
-    );
+    try {
+      const result = await query(
+        `UPDATE cognitive_alerts SET resolved = TRUE, resolved_at = NOW(), resolved_by = $1 WHERE id = $2 RETURNING *`,
+        [userId, id]
+      );
 
-    return reply.send({ message: 'Alerta resuelta' });
+      if (!result || result.length === 0) {
+        return reply.status(404).send({ error: 'Alerta no encontrada' });
+      }
+
+      return reply.send({ message: 'Alerta resuelta', alert: result[0] });
+    } catch (err) {
+      console.error('Error resolviendo alerta:', err);
+      return reply.status(500).send({ error: 'Error al resolver alerta' });
+    }
   });
 }
 

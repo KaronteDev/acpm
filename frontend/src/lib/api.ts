@@ -120,7 +120,7 @@ export const wellness = {
     return apiFetch<{ members: WellnessMember[]; alerts: CognitiveAlert[] }>(`/api/wellness/team${qs}`);
   },
   me: () => apiFetch<{ energy_trend: EnergyPoint[]; cognitive_stats: CognitiveStats[]; flow_stats: FlowStats; active_alerts: CognitiveAlert[] }>('/api/wellness/me'),
-  resolveAlert: (id: string) => apiFetch(`/api/wellness/alerts/${id}/resolve`, { method: 'POST' }),
+  resolveAlert: (id: string) => apiFetch<{ message: string }>(`/api/wellness/alerts/${id}/resolve`, { method: 'POST', body: JSON.stringify({}) }),
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -299,6 +299,8 @@ export interface CognitiveAlert {
   message: string;
   metadata: Record<string, unknown>;
   resolved: boolean;
+  resolved_at?: string;
+  resolved_by?: string;
   created_at: string;
   full_name?: string;
 }

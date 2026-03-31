@@ -11,6 +11,8 @@ export default function WellnessPage() {
   const [alerts, setAlerts] = useState<CognitiveAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<WellnessMember | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     wellness.team()
@@ -19,8 +21,87 @@ export default function WellnessPage() {
   }, []);
 
   async function resolveAlert(id: string) {
-    await wellness.resolveAlert(id);
-    setAlerts(prev => prev.filter(a => a.id !== id));
+    try {
+      setActionLoading(true);
+      console.log('Resolviendo alerta:', id);
+      const result = await wellness.resolveAlert(id);
+      console.log('Respuesta del servidor:', result);
+      
+      // Remover la alerta de la lista
+      setAlerts(prev => {
+        const filtered = prev.filter(a => a.id !== id);
+        console.log('Alertas después de filtrar:', filtered.length);
+        return filtered;
+      });
+      
+      setMessage({ type: 'success', text: '✓ Alerta resuelta' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+    } catch (err) {
+      console.error('Error al resolver alerta:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      setMessage({ type: 'error', text: `Error: ${errorMessage}` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function generateMonthlyReport() {
+    try {
+      setActionLoading(true);
+      const report = {
+        date: new Date().toLocaleDateString('es-ES'),
+        team_size: members.length,
+        total_alerts: alerts.length,
+        avg_icc: (members.reduce((s, m) => s + (typeof m.active_pcc_load === 'number' ? m.active_pcc_load : parseFloat(m.active_pcc_load as any) || 0), 0) / members.length).toFixed(1),
+        members_summary: members.map(m => ({
+          name: m.full_name,
+          icc: calcICC(m.active_pcc_load, m.cognitive_profile.overload_threshold),
+          energy: (typeof m.avg_energy_7d === 'number' ? m.avg_energy_7d : parseFloat(m.avg_energy_7d as any) || 0).toFixed(1),
+          sessions: m.total_sessions_7d,
+        })),
+      };
+
+      // Generar descarga del informe
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bienestar-informe-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setMessage({ type: 'success', text: '✓ Informe descargado' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Error al generar informe' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function rebalanceLoad() {
+    try {
+      setActionLoading(true);
+      // Algoritmo simple de rebalanceo: encontrar miembros sobrecargados
+      const overloaded = members.filter(m => {
+        const icc = calcICC(m.active_pcc_load, m.cognitive_profile.overload_threshold);
+        return icc > 7;
+      });
+
+      if (overloaded.length === 0) {
+        setMessage({ type: 'success', text: '✓ Carga equilibrada - no se detectaron sobrecargos' });
+      } else {
+        setMessage({ type: 'success', text: `✓ Se identificaron ${overloaded.length} miembros con sobrecarga. Revisa sus tareas para reasignar.` });
+      }
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Error al rebalancear carga' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   // Simulate daily ICC values from member data
@@ -37,14 +118,20 @@ export default function WellnessPage() {
 
   return (
     <div className="h-full overflow-y-auto p-6">
+      {/* Mensaje de estado */}
+      {message.text && (
+        <div className={`mb-4 p-3 rounded-lg text-sm ${message.type === 'success' ? 'bg-teal-dark/10 text-teal-dark border border-teal-dark/20' : 'bg-red/10 text-red border border-red/20'}`}>
+          {message.text}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-text-0">Centro de Bienestar Cognitivo</h2>
           <p className="text-xs text-text-2 mt-1">{members.length} miembros monitorizados · {alerts.length} alertas activas</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn btn-ghost text-xs">📊 Informe Mensual</button>
-          <button className="btn btn-teal text-xs">🔄 Rebalancear Carga</button>
+          <button onClick={generateMonthlyReport} disabled={actionLoading} className="btn btn-ghost text-xs disabled:opacity-50">📊 Informe Mensual</button>
+          <button onClick={rebalanceLoad} disabled={actionLoading} className="btn btn-teal text-xs disabled:opacity-50">🔄 Rebalancear Carga</button>
         </div>
       </div>
 

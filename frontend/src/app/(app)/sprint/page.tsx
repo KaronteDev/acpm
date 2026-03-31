@@ -12,6 +12,10 @@ export default function SprintPage() {
   const [sprintTasks, setSprintTasks] = useState<Task[]>([]);
   const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newSprintData, setNewSprintData] = useState({ name: '', goal: '', start_date: '', end_date: '' });
+  const [creatingSprint, setCreatingSprint] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     projects.list({ status: 'active' }).then(r => {
@@ -53,6 +57,48 @@ export default function SprintPage() {
     setBacklog(prev => [...prev, { ...task, sprint_id: undefined }]);
   }
 
+  async function createNewSprint() {
+    setCreateError('');
+    
+    if (!newSprintData.name.trim()) {
+      setCreateError('El nombre del sprint es requerido');
+      return;
+    }
+
+    if (!newSprintData.start_date || !newSprintData.end_date) {
+      setCreateError('Las fechas de inicio y fin son requeridas');
+      return;
+    }
+
+    const startDate = new Date(newSprintData.start_date);
+    const endDate = new Date(newSprintData.end_date);
+    
+    if (startDate >= endDate) {
+      setCreateError('La fecha de fin debe ser posterior a la fecha de inicio');
+      return;
+    }
+
+    try {
+      setCreatingSprint(true);
+      const { sprint } = await sprints.create({
+        project_id: selectedProject,
+        name: newSprintData.name,
+        goal: newSprintData.goal,
+        start_date: newSprintData.start_date,
+        end_date: newSprintData.end_date,
+      });
+
+      setActiveSprints(prev => [sprint, ...prev]);
+      setSelectedSprint(sprint);
+      setShowCreateModal(false);
+      setNewSprintData({ name: '', goal: '', start_date: '', end_date: '' });
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Error al crear el sprint');
+    } finally {
+      setCreatingSprint(false);
+    }
+  }
+
   const sprintPCC = sprintTasks.reduce((s, t) => s + t.cognitive_points, 0);
   const cogDist = (['deep_focus','creative','routine','collaborative','exploratory'] as const).map(ct => ({
     type: ct, count: sprintTasks.filter(t => t.cognitive_type === ct).length,
@@ -76,18 +122,25 @@ export default function SprintPage() {
       </div>
 
       {/* Sprint selector */}
-      {activeSprints.length > 0 && (
-        <div className="flex gap-2 mb-5">
-          {activeSprints.map(s => (
-            <button key={s.id} onClick={() => setSelectedSprint(s)}
-              className={`btn text-xs ${selectedSprint?.id === s.id ? 'btn-primary' : 'btn-ghost'}`}>
-              {s.name}
-              <span className="text-[9px] ml-1 opacity-70">{s.status}</span>
-            </button>
-          ))}
-          <button className="btn btn-ghost text-xs">+ Nuevo Sprint</button>
-        </div>
-      )}
+      <div className="flex gap-2 mb-5 items-center">
+        {activeSprints.length > 0 ? (
+          <>
+            {activeSprints.map(s => (
+              <button key={s.id} onClick={() => setSelectedSprint(s)}
+                className={`btn text-xs ${selectedSprint?.id === s.id ? 'btn-primary' : 'btn-ghost'}`}>
+                {s.name}
+                <span className="text-[9px] ml-1 opacity-70">{s.status}</span>
+              </button>
+            ))}
+            <button onClick={() => setShowCreateModal(true)} className="btn btn-ghost text-xs">+ Nuevo Sprint</button>
+          </>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-text-2">No hay sprints aún</span>
+            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary text-xs">+ Crear Primer Sprint</button>
+          </div>
+        )}
+      </div>
 
       {selectedSprint && (
         <>
@@ -186,6 +239,91 @@ export default function SprintPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Create Sprint Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-bg-1 rounded-xl border border-border p-6 max-w-md w-full mx-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-text-0">Crear Nuevo Sprint</h3>
+              <button onClick={() => { setShowCreateModal(false); setCreateError(''); }} className="text-text-3 hover:text-text-1">✕</button>
+            </div>
+
+            {createError && (
+              <div className="p-3 rounded-lg text-sm" style={{
+                backgroundColor: 'color-mix(in srgb, var(--accent-red) 15%, transparent)',
+                borderColor: 'color-mix(in srgb, var(--accent-red) 30%, transparent)',
+                color: 'var(--accent-red)',
+                borderWidth: '1px'
+              }}>
+                {createError}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-text-1 mb-1.5">Nombre del Sprint</label>
+                <input
+                  type="text"
+                  placeholder="ej: Sprint 1 - Q2 2026"
+                  value={newSprintData.name}
+                  onChange={e => setNewSprintData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-bg-3 border border-border rounded-lg px-3 py-2 text-sm text-text-0 focus:outline-none focus:border-border-hi"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-1 mb-1.5">Objetivo (opcional)</label>
+                <textarea
+                  placeholder="ej: Implementar autenticación OAuth2"
+                  value={newSprintData.goal}
+                  onChange={e => setNewSprintData(prev => ({ ...prev, goal: e.target.value }))}
+                  className="w-full bg-bg-3 border border-border rounded-lg px-3 py-2 text-sm text-text-0 focus:outline-none focus:border-border-hi resize-none"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-text-1 mb-1.5">Fecha de inicio</label>
+                  <input
+                    type="date"
+                    value={newSprintData.start_date}
+                    onChange={e => setNewSprintData(prev => ({ ...prev, start_date: e.target.value }))}
+                    className="w-full bg-bg-3 border border-border rounded-lg px-3 py-2 text-sm text-text-0 focus:outline-none focus:border-border-hi"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-1 mb-1.5">Fecha de fin</label>
+                  <input
+                    type="date"
+                    value={newSprintData.end_date}
+                    onChange={e => setNewSprintData(prev => ({ ...prev, end_date: e.target.value }))}
+                    className="w-full bg-bg-3 border border-border rounded-lg px-3 py-2 text-sm text-text-0 focus:outline-none focus:border-border-hi"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+                className="flex-1 btn btn-ghost text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={createNewSprint}
+                disabled={creatingSprint}
+                className="flex-1 btn btn-primary text-xs disabled:opacity-50"
+              >
+                {creatingSprint ? 'Creando...' : 'Crear Sprint'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
