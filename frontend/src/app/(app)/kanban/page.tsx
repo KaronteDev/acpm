@@ -26,6 +26,7 @@ export default function KanbanPage() {
   const [loading, setLoading] = useState(true);
   const [movingTask, setMovingTask] = useState<string | null>(null);
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [viewMode, setViewMode] = useState<'kanban' | 'map'>('kanban');
 
   // Load saved project and projects list
   useEffect(() => {
@@ -99,18 +100,23 @@ export default function KanbanPage() {
         </div>
 
         <div className="ml-auto flex gap-2">
-          <button className="btn btn-ghost text-xs">⬡ Vista Mapa</button>
+          <button
+            onClick={() => setViewMode(viewMode === 'kanban' ? 'map' : 'kanban')}
+            className={`btn text-xs ${viewMode === 'map' ? 'btn-primary' : 'btn-ghost'}`}
+          >
+            {viewMode === 'kanban' ? '⬡ Vista Mapa' : '◰ Vista Kanban'}
+          </button>
           <Link href={selectedProject ? `/tasks/new?project=${selectedProject}` : '/tasks/new'}>
             <button className="btn btn-primary text-xs">+ Nueva Tarea</button>
           </Link>
         </div>
       </div>
 
-      {/* Kanban columns */}
+      {/* Kanban columns or Map view */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden p-5">
         {loading ? (
           <div className="flex items-center justify-center h-full text-text-3">Cargando tablero...</div>
-        ) : (
+        ) : viewMode === 'kanban' ? (
           <div className="flex gap-3.5 h-full">
             {COLUMNS.map(col => {
               const colTasks = getColumnTasks(col.id);
@@ -161,6 +167,8 @@ export default function KanbanPage() {
               );
             })}
           </div>
+        ) : (
+          <MapView tasks={allTasks} filterCog={filterCog} />
         )}
       </div>
     </div>
@@ -252,6 +260,69 @@ function KanbanCard({ task, col, moving, onMove, columns }: {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function MapView({ tasks, filterCog }: {
+  tasks: Task[];
+  filterCog: string;
+}) {
+  const router = useRouter();
+  const filteredTasks = filterCog ? tasks.filter(t => t.cognitive_type === filterCog) : tasks;
+
+  const statusGroups = COLUMNS.reduce((acc, col) => {
+    acc[col.id] = filteredTasks.filter(t => t.status === col.id);
+    return acc;
+  }, {} as Record<KanbanStatus, Task[]>);
+
+  return (
+    <div className="w-full h-full overflow-auto">
+      <table className="w-full border-collapse text-xs">
+        <thead className="sticky top-0 bg-bg-2 border-b border-border">
+          <tr>
+            <th className="text-left px-4 py-2 font-bold text-text-0">Tarea</th>
+            <th className="text-left px-4 py-2 font-bold text-text-0">Tipo</th>
+            <th className="text-left px-4 py-2 font-bold text-text-0">Asignado</th>
+            {COLUMNS.map(col => (
+              <th key={col.id} className="text-center px-2 py-2 font-bold text-text-0" style={{ color: col.color }}>
+                {col.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredTasks.map(task => (
+            <tr
+              key={task.id}
+              onDoubleClick={() => router.push(`/tasks/${task.id}`)}
+              className="border-b border-border hover:bg-bg-3 cursor-pointer transition-colors"
+            >
+              <td className="px-4 py-2 text-text-0 font-medium truncate max-w-xs">{task.title}</td>
+              <td className="px-4 py-2 text-text-2">{COGNITIVE_TYPE_LABELS[task.cognitive_type]}</td>
+              <td className="px-4 py-2 text-text-2">
+                {task.assignee_name ? (
+                  <span className="inline-flex items-center gap-1">
+                    <div className="w-4 h-4 rounded-full bg-purple/30 flex items-center justify-center text-[7px] font-bold text-purple">
+                      {getInitials(task.assignee_name)}
+                    </div>
+                    {task.assignee_name}
+                  </span>
+                ) : (
+                  <span className="text-text-3">—</span>
+                )}
+              </td>
+              {COLUMNS.map(col => (
+                <td key={col.id} className="text-center px-2 py-2">
+                  {task.status === col.id && (
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: col.color }}></span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
